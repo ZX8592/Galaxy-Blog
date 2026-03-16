@@ -375,24 +375,25 @@ const RichEditor = {
   props: ['modelValue'],
   emits: ['update:modelValue'],
   template: `
-    <div>
-      <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+    <div class="rich-editor-shell">
+      <div class="editor-mode-toggle">
         <button
           type="button"
           class="ghost-btn"
-          style="min-height:40px;padding:0 12px;"
           @click="isSourceMode = !isSourceMode"
         >
           {{ isSourceMode ? '返回富文本' : '切换到 HTML 源码' }}
         </button>
       </div>
-      <div v-show="!isSourceMode" ref="editorRoot"></div>
-      <textarea
-        v-show="isSourceMode"
-        class="source-editor"
-        v-model="sourceContent"
-        @input="updateSource"
-      ></textarea>
+      <div class="editor-stage">
+        <div v-show="!isSourceMode" ref="editorRoot"></div>
+        <textarea
+          v-show="isSourceMode"
+          class="source-editor"
+          v-model="sourceContent"
+          @input="updateSource"
+        ></textarea>
+      </div>
     </div>
   `,
   data() {
@@ -482,6 +483,7 @@ createApp({
     const planets = ref([]);
     const activeIndex = ref(-1);
     const activeMoonIndex = ref(-1);
+    const expandedPlanetIndex = ref(-1);
     const saveStatus = ref(null);
     const isBusy = ref(false);
     const repoConfig = reactive(loadStoredRepoConfig());
@@ -670,11 +672,13 @@ createApp({
       planets.value = data.blogPosts;
       activeIndex.value = -1;
       activeMoonIndex.value = -1;
+      expandedPlanetIndex.value = -1;
     }
 
     function selectStarHome() {
       activeIndex.value = -1;
       activeMoonIndex.value = -1;
+      expandedPlanetIndex.value = -1;
       activeSidebarPanel.value = null;
       if (isCompactScreen.value) {
         mobileSidebarOpen.value = false;
@@ -683,15 +687,27 @@ createApp({
     }
 
     function selectPlanet(index) {
+      const samePlanet = activeIndex.value === index;
+      const moonWasSelected = samePlanet && activeMoonIndex.value !== -1;
+
       activeIndex.value = index;
-      activeMoonIndex.value = -1;
       activeSidebarPanel.value = null;
+
+      if (moonWasSelected) {
+        activeMoonIndex.value = -1;
+        expandedPlanetIndex.value = index;
+      } else {
+        activeMoonIndex.value = -1;
+        expandedPlanetIndex.value = expandedPlanetIndex.value === index ? -1 : index;
+      }
+
       scrollWorkspaceToTop();
     }
 
     function selectMoon(planetIndex, moonIndex) {
       activeIndex.value = planetIndex;
       activeMoonIndex.value = moonIndex;
+      expandedPlanetIndex.value = planetIndex;
       activeSidebarPanel.value = null;
       if (isCompactScreen.value) {
         mobileSidebarOpen.value = false;
@@ -743,6 +759,7 @@ createApp({
       planets.value.push(newPlanetTemplate());
       activeIndex.value = planets.value.length - 1;
       activeMoonIndex.value = -1;
+      expandedPlanetIndex.value = activeIndex.value;
       activeSidebarPanel.value = null;
 
       if (isCompactScreen.value) {
@@ -757,10 +774,12 @@ createApp({
         return;
       }
 
+      const previousExpandedIndex = expandedPlanetIndex.value;
       planets.value.splice(index, 1);
       if (planets.value.length === 0) {
         activeIndex.value = -1;
         activeMoonIndex.value = -1;
+        expandedPlanetIndex.value = -1;
         return;
       }
 
@@ -769,6 +788,12 @@ createApp({
         activeMoonIndex.value = -1;
       } else if (activeIndex.value > index) {
         activeIndex.value -= 1;
+      }
+
+      if (previousExpandedIndex === index) {
+        expandedPlanetIndex.value = activeIndex.value === -1 ? -1 : Math.min(index, planets.value.length - 1);
+      } else if (previousExpandedIndex > index) {
+        expandedPlanetIndex.value = previousExpandedIndex - 1;
       }
     }
 
@@ -785,6 +810,7 @@ createApp({
       targetPlanet.moons.push(newMoonTemplate());
       activeIndex.value = planetIndex;
       activeMoonIndex.value = targetPlanet.moons.length - 1;
+      expandedPlanetIndex.value = planetIndex;
       activeSidebarPanel.value = null;
 
       if (isCompactScreen.value) {
@@ -851,6 +877,7 @@ createApp({
       planets,
       activeIndex,
       activeMoonIndex,
+      expandedPlanetIndex,
       activePlanet,
       activeMoon,
       saveStatus,

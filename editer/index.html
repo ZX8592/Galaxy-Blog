@@ -170,6 +170,11 @@
       height: 100vh;
     }
 
+    #app[v-cloak] {
+      opacity: 0;
+      pointer-events: none;
+    }
+
     .icon-btn,
     .dock-btn,
     .ghost-btn,
@@ -316,26 +321,6 @@
       text-overflow: ellipsis;
     }
 
-    .quick-create {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      min-height: 52px;
-      border-radius: 18px;
-      border: 1px solid var(--border);
-      background: var(--panel);
-      color: var(--text);
-      box-shadow: var(--shadow);
-      padding: 0 16px;
-      backdrop-filter: var(--glass);
-    }
-
-    .quick-create .icon {
-      font-size: 1.2rem;
-      line-height: 1;
-    }
-
     .layout:not(.expanded) .with-label,
     .layout:not(.expanded) .sidebar-brand,
     .layout:not(.expanded) .sidebar-scroll,
@@ -379,6 +364,10 @@
       grid-template-columns: minmax(0, 1fr) 38px;
       gap: 8px;
       align-items: stretch;
+    }
+
+    .nav-home-row {
+      margin-bottom: 4px;
     }
 
     .nav-item {
@@ -428,29 +417,29 @@
       background: rgba(255, 255, 255, 0.12);
     }
 
-    .moon-add-btn {
+    .tree-action-btn {
       width: 38px;
       height: 100%;
       min-height: 38px;
       border-radius: 14px;
-      border: 1px solid transparent;
-      background: transparent;
+      border: 1px solid var(--border);
+      background: var(--panel-soft);
       color: var(--muted);
       display: inline-flex;
       align-items: center;
       justify-content: center;
       font-size: 1rem;
-      opacity: 0.26;
-      transition: opacity 0.18s ease, background 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+      box-shadow: 0 8px 24px rgba(103, 123, 170, 0.08);
+      transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
     }
 
-    .nav-group:hover .moon-add-btn,
-    .moon-add-btn:focus-visible,
-    .moon-add-btn:hover {
-      opacity: 1;
+    .nav-group:hover .tree-action-btn,
+    .tree-action-btn:focus-visible,
+    .tree-action-btn:hover {
       background: var(--accent-soft);
       color: var(--accent);
       border-color: rgba(61, 109, 242, 0.2);
+      box-shadow: 0 12px 28px rgba(61, 109, 242, 0.12);
     }
 
     .moon-list {
@@ -595,6 +584,20 @@
 
     .panel-row > .ghost-btn {
       min-width: 0;
+    }
+
+    .theme-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      flex-wrap: nowrap;
+    }
+
+    .theme-btn {
+      min-height: 46px;
+      white-space: nowrap;
+      text-align: center;
+      padding: 0 12px;
     }
 
     .dock {
@@ -890,6 +893,24 @@
       font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
     }
 
+    .rich-editor-shell {
+      position: relative;
+      padding-top: 2px;
+    }
+
+    .editor-mode-toggle {
+      position: absolute;
+      top: 0;
+      right: 0;
+      z-index: 3;
+      min-height: 38px;
+      padding: 0 12px;
+    }
+
+    .editor-stage {
+      padding-top: 46px;
+    }
+
     .empty-state {
       min-height: 300px;
       display: flex;
@@ -980,7 +1001,7 @@
   </style>
 </head>
 <body>
-  <div id="app">
+  <div id="app" v-cloak>
     <div class="layout" :class="{ expanded: isSidebarExpanded }">
       <button class="icon-btn sidebar-toggle" @click="toggleSidebar" :aria-label="sidebarToggleLabel">{{ isSidebarExpanded ? '☰' : '☰' }}</button>
 
@@ -996,32 +1017,38 @@
             <span>{{ currentSelectionLabel }}</span>
           </div>
 
-          <button v-if="isSidebarExpanded" class="quick-create" @click="addPlanet">
-            <span class="icon">＋</span>
-            <span class="with-label">新增行星</span>
-          </button>
         </div>
 
         <div class="sidebar-scroll">
           <p class="section-title">内容导航</p>
           <div class="nav-list">
-            <button class="nav-item" :class="{ active: activeIndex === -1 }" @click="selectStarHome">
-              <strong>恒星首页</strong>
-              <span>编辑站点标题、首页文案与恒星颜色</span>
-            </button>
+            <div class="nav-planet-row nav-home-row">
+              <button class="nav-item planet-item" :class="{ active: activeIndex === -1 }" @click="selectStarHome">
+                <strong>恒星首页</strong>
+                <span>编辑站点标题、首页文案与恒星颜色</span>
+              </button>
+              <button
+                class="tree-action-btn"
+                @click.stop="addPlanet"
+                aria-label="新增行星"
+                title="新增行星"
+              >
+                ＋
+              </button>
+            </div>
 
             <div v-for="(planet, index) in planets" :key="index" class="nav-group">
               <div class="nav-planet-row">
                 <button
                   class="nav-item planet-item"
-                  :class="{ active: activeIndex === index && activeMoonIndex === -1, expanded: activeIndex === index }"
+                  :class="{ active: activeIndex === index && activeMoonIndex === -1, expanded: expandedPlanetIndex === index }"
                   @click="selectPlanet(index)"
                 >
                   <strong>{{ planet.name || '未命名行星' }}</strong>
                   <span>{{ planet.date || '未设置日期' }} · {{ planet.moons?.length || 0 }} 个卫星</span>
                 </button>
                 <button
-                  class="moon-add-btn"
+                  class="tree-action-btn"
                   @click.stop="addMoon(index)"
                   :aria-label="`为 ${planet.name || '未命名行星'} 新增卫星`"
                   title="新增卫星"
@@ -1030,7 +1057,7 @@
                 </button>
               </div>
 
-              <div v-if="activeIndex === index && planet.moons?.length" class="moon-list">
+              <div v-if="expandedPlanetIndex === index && planet.moons?.length" class="moon-list">
                 <button
                   v-for="(moon, moonIndex) in planet.moons"
                   :key="`${index}-${moonIndex}`"
@@ -1043,7 +1070,7 @@
                 </button>
               </div>
 
-              <div v-else-if="activeIndex === index" class="moon-empty">
+              <div v-else-if="expandedPlanetIndex === index" class="moon-empty">
                 这颗行星还没有卫星，点击右侧图标新增。
               </div>
             </div>
@@ -1101,10 +1128,10 @@
               <span>切换编辑器明暗风格，保持和你的工作环境一致。</span>
             </div>
 
-            <div class="panel-row">
-              <button class="ghost-btn" :class="{ active: currentTheme === 'light' }" @click="setTheme('light')">浅色</button>
-              <button class="ghost-btn" :class="{ active: currentTheme === 'dark' }" @click="setTheme('dark')">深色</button>
-              <button class="ghost-btn" :class="{ active: currentTheme === 'system' }" @click="setTheme('system')">系统</button>
+            <div class="panel-row theme-row">
+              <button class="ghost-btn theme-btn" :class="{ active: currentTheme === 'light' }" @click="setTheme('light')">浅色主题</button>
+              <button class="ghost-btn theme-btn" :class="{ active: currentTheme === 'dark' }" @click="setTheme('dark')">深色主题</button>
+              <button class="ghost-btn theme-btn" :class="{ active: currentTheme === 'system' }" @click="setTheme('system')">跟随系统</button>
             </div>
           </div>
 
