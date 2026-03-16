@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>星系博客编辑器</title>
+  <link rel="preconnect" href="https://cdn.quilljs.com">
+  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+  <style>
+    :root[data-theme="dark"] {
+      --bg: #0a101d;
+      --panel: #121a2a;
+      --panel-soft: #0e1524;
+      --text: #e8eefc;
+      --muted: #8ea0c2;
+      --border: #24314a;
+      --accent: #5aa8ff;
+      --accent-strong: #3d8ef0;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+    }
+
+    :root[data-theme="light"] {
+      --bg: #f2f6fb;
+      --panel: #ffffff;
+      --panel-soft: #f8fbff;
+      --text: #172033;
+      --muted: #62718f;
+      --border: #dbe5f2;
+      --accent: #2563eb;
+      --accent-strong: #1d4ed8;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: radial-gradient(circle at top, rgba(90, 168, 255, 0.12), transparent 35%), var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    body { overflow: hidden; }
+    button, input, select, textarea { font: inherit; }
+    code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+
+    #app {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar,
+    .repo-bar {
+      padding: 16px 24px;
+      background: color-mix(in srgb, var(--panel) 92%, transparent);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .topbar-title {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .topbar-title h1 {
+      margin: 0;
+      font-size: 1.4rem;
+      letter-spacing: 0.06em;
+    }
+
+    .topbar-title p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .topbar-actions,
+    .repo-actions,
+    .stack-actions,
+    .inline-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .repo-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .repo-grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .repo-token {
+      grid-column: span 2;
+    }
+
+    .repo-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .repo-hint {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .shell {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      padding: 18px;
+      border-right: 1px solid var(--border);
+      background: color-mix(in srgb, var(--panel) 90%, transparent);
+      overflow-y: auto;
+    }
+
+    .sidebar-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sidebar-label {
+      margin: 0 0 6px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .item-card {
+      border: 1px solid transparent;
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: var(--panel-soft);
+      cursor: pointer;
+      transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+    }
+
+    .item-card:hover {
+      transform: translateY(-1px);
+      border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+    }
+
+    .item-card.active {
+      border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+      background: color-mix(in srgb, var(--accent) 12%, var(--panel-soft));
+    }
+
+    .item-card h3,
+    .item-card p {
+      margin: 0;
+    }
+
+    .item-card h3 {
+      font-size: 1rem;
+      margin-bottom: 4px;
+    }
+
+    .item-card p {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .editor {
+      min-width: 0;
+      overflow-y: auto;
+      padding: 24px;
+    }
+
+    .editor-inner {
+      max-width: 980px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 22px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .panel-header h2,
+    .panel-header h3 {
+      margin: 0;
+      font-size: 1.15rem;
+    }
+
+    .panel-header p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .field-grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    .field label {
+      font-size: 0.82rem;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--panel-soft);
+      color: var(--text);
+      padding: 12px 14px;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      outline: none;
+      border-color: color-mix(in srgb, var(--accent) 70%, var(--border));
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
+    }
+
+    .btn {
+      appearance: none;
+      border: none;
+      border-radius: 999px;
+      padding: 10px 16px;
+      background: var(--accent);
+      color: white;
+      cursor: pointer;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      transition: transform 0.18s ease, background 0.18s ease, opacity 0.18s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); background: var(--accent-strong); }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+    .btn.secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn.secondary:hover {
+      background: color-mix(in srgb, var(--accent) 8%, transparent);
+    }
+    .btn.danger {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid color-mix(in srgb, var(--danger) 38%, var(--border));
+    }
+    .btn.danger:hover {
+      background: color-mix(in srgb, var(--danger) 10%, transparent);
+    }
+    .btn.success {
+      background: var(--success);
+    }
+    .btn.success:hover {
+      background: color-mix(in srgb, var(--success) 85%, black);
+    }
+
+    .status-pill,
+    .source-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 38px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--panel-soft);
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .status-pill.success {
+      color: var(--success);
+      border-color: color-mix(in srgb, var(--success) 45%, var(--border));
+    }
+
+    .status-pill.error {
+      color: var(--danger);
+      border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
+    }
+
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+
+    .toggle input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+    }
+
+    .color-grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .color-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--panel-soft);
+    }
+
+    .color-card input[type="color"] {
+      width: 52px;
+      height: 52px;
+      border: none;
+      border-radius: 12px;
+      background: none;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    .color-card strong,
+    .color-card span {
+      display: block;
+    }
+
+    .color-card strong {
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+    }
+
+    .color-card span {
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 0.82rem;
+    }
+
+    .sub-card {
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--panel-soft);
+      padding: 18px;
+    }
+
+    .empty-state {
+      min-height: 320px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed var(--border);
+      border-radius: 22px;
+      background: color-mix(in srgb, var(--panel) 70%, transparent);
+      padding: 32px;
+    }
+
+    .ql-toolbar.ql-snow,
+    .ql-container.ql-snow {
+      border-color: var(--border);
+      background: var(--panel-soft);
+      color: var(--text);
+    }
+
+    .ql-toolbar.ql-snow { border-radius: 14px 14px 0 0; }
+
+    .ql-container.ql-snow {
+      border-radius: 0 0 14px 14px;
+      min-height: 240px;
+      font-size: 1rem;
+    }
+
+    .ql-toolbar.ql-snow .ql-stroke { stroke: var(--muted); }
+    .ql-toolbar.ql-snow .ql-fill { fill: var(--muted); }
+    .ql-toolbar.ql-snow .ql-picker { color: var(--muted); }
+
+    .source-editor {
+      width: 100%;
+      min-height: 240px;
+      resize: vertical;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--panel-soft);
+      color: var(--text);
+      padding: 12px 14px;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
+
+    @media (max-width: 1320px) {
+      .repo-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .repo-token {
+        grid-column: span 2;
+      }
+
+      .shell {
+        grid-template-columns: 260px minmax(0, 1fr);
+      }
+    }
+
+    @media (max-width: 980px) {
+      body { overflow: auto; }
+
+      #app {
+        height: auto;
+        min-height: 100vh;
+      }
+
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .field-grid,
+      .color-grid,
+      .repo-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .repo-token {
+        grid-column: span 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1>星系博客编辑器</h1>
+        <p>主页与行星内容会写入 <code>src/blogData.js</code>，GitHub Pages 部署后可直接提交回仓库。</p>
+      </div>
+      <div class="topbar-actions">
+        <span v-if="saveStatus" :class="['status-pill', saveStatus.type]">{{ saveStatus.msg }}</span>
+        <button class="btn secondary" @click="toggleTheme">切换主题</button>
+        <button class="btn" @click="addPlanet">新增行星</button>
+        <button class="btn success" @click="saveData" :disabled="isBusy || !canSave">{{ saveButtonLabel }}</button>
+      </div>
+    </header>
+
+    <section class="repo-bar">
+      <div class="repo-grid">
+        <div class="field">
+          <label>GitHub 用户名</label>
+          <input type="text" v-model.trim="repoConfig.owner" placeholder="your-name">
+        </div>
+        <div class="field">
+          <label>仓库名</label>
+          <input type="text" v-model.trim="repoConfig.repo" placeholder="galaxy-blog">
+        </div>
+        <div class="field">
+          <label>分支</label>
+          <input type="text" v-model.trim="repoConfig.branch" placeholder="main">
+        </div>
+        <div class="field">
+          <label>数据文件路径</label>
+          <input type="text" v-model.trim="repoConfig.filePath" placeholder="src/blogData.js">
+        </div>
+        <div class="field repo-token">
+          <label>GitHub Token</label>
+          <input type="password" v-model.trim="repoConfig.token" placeholder="github_pat_xxx / ghp_xxx">
+        </div>
+      </div>
+
+      <div class="repo-meta">
+        <div class="inline-actions">
+          <label class="toggle">
+            <input type="checkbox" v-model="repoConfig.persistToken">
+            <span>记住当前设备上的 Token</span>
+          </label>
+          <span class="source-pill">当前保存目标：{{ currentSourceLabel }}</span>
+        </div>
+        <div class="repo-actions">
+          <button class="btn secondary" @click="saveRepoSettings">保存连接配置</button>
+          <button class="btn secondary" @click="loadData" :disabled="isBusy || !canLoad">从源读取</button>
+        </div>
+      </div>
+
+      <p class="repo-hint">
+        GitHub Pages 环境下请填写仓库信息和 Token。点击“保存到 GitHub”后，编辑器会直接更新仓库中的 <code>src/blogData.js</code>，随后由 GitHub Actions 自动重新部署站点。
+      </p>
+    </section>
+
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <p class="sidebar-label">导航</p>
+          <div class="item-card" :class="{ active: activeIndex === -1 }" @click="activeIndex = -1">
+            <h3>恒星首页</h3>
+            <p>编辑站点标题、文案、首页正文和恒星颜色。</p>
+          </div>
+
+          <div
+            v-for="(planet, index) in planets"
+            :key="index"
+            class="item-card"
+            :class="{ active: activeIndex === index }"
+            @click="activeIndex = index"
+          >
+            <h3>{{ planet.name || '未命名行星' }}</h3>
+            <p>{{ planet.date || '未设置日期' }} · {{ planet.moons?.length || 0 }} 个卫星</p>
+          </div>
+        </div>
+      </aside>
+
+      <main class="editor">
+        <div class="editor-inner" v-if="starData">
+          <template v-if="activeIndex === -1">
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>全局配置</h2>
+                  <p>这些内容会影响浏览器标题和首页恒星介绍区。</p>
+                </div>
+              </div>
+              <div class="field-grid">
+                <div class="field full">
+                  <label>网页标题</label>
+                  <input type="text" v-model="starData.name" placeholder="例如：Galaxy Blog - 星系博客">
+                </div>
+                <div class="field">
+                  <label>顶部标签</label>
+                  <input type="text" v-model="starData.label" placeholder="例如：✦ GALAXY BLOG ✦">
+                </div>
+                <div class="field">
+                  <label>主标题</label>
+                  <input type="text" v-model="starData.title" placeholder="例如：星系博客">
+                </div>
+                <div class="field">
+                  <label>副标题</label>
+                  <input type="text" v-model="starData.meta" placeholder="例如：探索无垠的思想宇宙">
+                </div>
+                <div class="field">
+                  <label>统计文案</label>
+                  <input type="text" v-model="starData.statsText" placeholder="例如：∞ 无限想象">
+                </div>
+                <div class="field full">
+                  <label>提示文案</label>
+                  <input type="text" v-model="starData.hint" placeholder="例如：← 点击恒星查看更多 →">
+                </div>
+                <div class="field">
+                  <label>恒星大小</label>
+                  <input type="number" step="0.1" v-model.number="starData.size">
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>恒星颜色</h2>
+                  <p>控制核心色、辉光色和外部日冕色。</p>
+                </div>
+              </div>
+              <div class="color-grid">
+                <div class="color-card">
+                  <input type="color" v-model="starData.colors.core">
+                  <div>
+                    <strong>核心颜色</strong>
+                    <span>{{ starData.colors.core }}</span>
+                  </div>
+                </div>
+                <div class="color-card">
+                  <input type="color" v-model="starData.colors.halo">
+                  <div>
+                    <strong>辉光颜色</strong>
+                    <span>{{ starData.colors.halo }}</span>
+                  </div>
+                </div>
+                <div class="color-card">
+                  <input type="color" v-model="starData.colors.corona">
+                  <div>
+                    <strong>日冕颜色</strong>
+                    <span>{{ starData.colors.corona }}</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>首页正文</h2>
+                  <p>支持富文本、图片和 HTML 源码切换。</p>
+                </div>
+              </div>
+              <rich-editor v-model="starData.body"></rich-editor>
+            </section>
+          </template>
+
+          <template v-else-if="activePlanet">
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>行星基础信息</h2>
+                  <p>配置行星名称、轨道、时间和展示方式。</p>
+                </div>
+                <button class="btn danger" @click="deletePlanet(activeIndex)">删除这个行星</button>
+              </div>
+
+              <div class="field-grid">
+                <div class="field">
+                  <label>行星名称</label>
+                  <input type="text" v-model="activePlanet.name" placeholder="例如：起源星">
+                </div>
+                <div class="field">
+                  <label>副标题</label>
+                  <input type="text" v-model="activePlanet.subtitle" placeholder="一句短描述">
+                </div>
+                <div class="field">
+                  <label>日期</label>
+                  <input type="date" v-model="activePlanet.date">
+                </div>
+                <div class="field">
+                  <label>轨道半径</label>
+                  <input type="number" step="0.5" v-model.number="activePlanet.orbitRadius">
+                </div>
+                <div class="field">
+                  <label>公转速度</label>
+                  <input type="number" step="0.001" v-model.number="activePlanet.orbitSpeed">
+                </div>
+                <div class="field">
+                  <label>自转速度</label>
+                  <input type="number" step="0.01" v-model.number="activePlanet.spinSpeed">
+                </div>
+                <div class="field">
+                  <label>行星尺寸</label>
+                  <input type="number" step="0.05" v-model.number="activePlanet.size">
+                </div>
+                <div class="field">
+                  <label>内容类型</label>
+                  <select v-model="activePlanet.type">
+                    <option value="html">富文本 HTML</option>
+                    <option value="iframe">嵌入网页 iframe</option>
+                    <option value="link">外部链接</option>
+                  </select>
+                </div>
+                <div class="field full" v-if="activePlanet.type === 'iframe' || activePlanet.type === 'link'">
+                  <label>目标 URL</label>
+                  <input type="url" v-model="activePlanet.url" placeholder="https://...">
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>行星视觉</h2>
+                  <p>颜色、大气和星环都在这里调整。</p>
+                </div>
+              </div>
+
+              <div class="color-grid">
+                <div class="color-card">
+                  <input type="color" v-model="activePlanet.colors.base">
+                  <div>
+                    <strong>基础颜色</strong>
+                    <span>{{ activePlanet.colors.base }}</span>
+                  </div>
+                </div>
+                <div class="color-card">
+                  <input type="color" v-model="activePlanet.colors.accent">
+                  <div>
+                    <strong>强调颜色</strong>
+                    <span>{{ activePlanet.colors.accent }}</span>
+                  </div>
+                </div>
+                <div class="color-card">
+                  <input type="color" v-model="activePlanet.colors.atmosphere">
+                  <div>
+                    <strong>大气颜色</strong>
+                    <span>{{ activePlanet.colors.atmosphere }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="stack-actions" style="margin-top: 18px;">
+                <label class="toggle">
+                  <input type="checkbox" v-model="activePlanet.hasRing">
+                  <span>启用星环</span>
+                </label>
+                <div class="field" style="min-width: 220px;" v-if="activePlanet.hasRing">
+                  <label>星环颜色</label>
+                  <input type="color" v-model="activePlanet.ringColor">
+                </div>
+              </div>
+            </section>
+
+            <section class="panel" v-if="activePlanet.type === 'html'">
+              <div class="panel-header">
+                <div>
+                  <h2>行星正文</h2>
+                  <p>点击主页中的行星后会展示这里的内容。</p>
+                </div>
+              </div>
+              <rich-editor v-model="activePlanet.content"></rich-editor>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>卫星内容</h2>
+                  <p>每颗卫星都可以作为二级内容继续展开。</p>
+                </div>
+                <button class="btn" @click="addMoon">新增卫星</button>
+              </div>
+
+              <div v-if="activePlanet.moons && activePlanet.moons.length">
+                <div class="sub-card" v-for="(moon, moonIndex) in activePlanet.moons" :key="moonIndex" style="margin-bottom: 16px;">
+                  <div class="panel-header" style="margin-bottom: 16px;">
+                    <div>
+                      <h3>卫星 {{ moonIndex + 1 }} · {{ moon.name || '未命名卫星' }}</h3>
+                    </div>
+                    <button class="btn danger" @click="activePlanet.moons.splice(moonIndex, 1)">删除卫星</button>
+                  </div>
+
+                  <div class="field-grid">
+                    <div class="field">
+                      <label>名称</label>
+                      <input type="text" v-model="moon.name" placeholder="例如：回声卫星">
+                    </div>
+                    <div class="field">
+                      <label>尺寸</label>
+                      <input type="number" step="0.1" v-model.number="moon.size">
+                    </div>
+                    <div class="field">
+                      <label>内容类型</label>
+                      <select v-model="moon.type">
+                        <option value="html">富文本 HTML</option>
+                        <option value="iframe">嵌入网页 iframe</option>
+                        <option value="link">外部链接</option>
+                      </select>
+                    </div>
+                    <div class="field full" v-if="moon.type === 'iframe' || moon.type === 'link'">
+                      <label>目标 URL</label>
+                      <input type="url" v-model="moon.url" placeholder="https://...">
+                    </div>
+                  </div>
+
+                  <div class="color-grid" style="margin-top: 16px;">
+                    <div class="color-card">
+                      <input type="color" v-model="moon.colors.base">
+                      <div>
+                        <strong>基础颜色</strong>
+                        <span>{{ moon.colors.base }}</span>
+                      </div>
+                    </div>
+                    <div class="color-card">
+                      <input type="color" v-model="moon.colors.accent">
+                      <div>
+                        <strong>强调颜色</strong>
+                        <span>{{ moon.colors.accent }}</span>
+                      </div>
+                    </div>
+                    <div class="color-card">
+                      <input type="color" v-model="moon.colors.atmosphere">
+                      <div>
+                        <strong>大气颜色</strong>
+                        <span>{{ moon.colors.atmosphere }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style="margin-top: 16px;" v-if="moon.type === 'html'">
+                    <rich-editor v-model="moon.content"></rich-editor>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="empty-state">
+                当前行星还没有卫星内容，可以点击右上角“新增卫星”开始创建。
+              </div>
+            </section>
+          </template>
+        </div>
+
+        <div class="editor-inner" v-else>
+          <div class="empty-state">
+            正在准备编辑器数据……
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

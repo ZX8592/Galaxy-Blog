@@ -1,0 +1,573 @@
+/* ============================================
+   Galaxy Blog 鈥?Global Styles
+   ============================================ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  overflow: hidden;
+  background: #000;
+  font-family: 'Noto Sans SC', sans-serif;
+  color: #e0e6f0;
+  cursor: grab;
+  user-select: none;
+}
+
+body:active {
+  cursor: grabbing;
+}
+
+/* Canvas */
+#galaxy-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+}
+
+/* ============================================
+   Planet HUD
+   ============================================ */
+#planet-hud {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity 0.5s ease;
+}
+
+#planet-hud .planet-name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow:
+    0 0 20px rgba(120, 180, 255, 0.8),
+    0 0 60px rgba(80, 140, 255, 0.4);
+  letter-spacing: 0.15em;
+  margin-bottom: 6px;
+}
+
+#planet-hud .planet-subtitle {
+  font-size: 0.95rem;
+  font-weight: 300;
+  color: rgba(180, 210, 255, 0.7);
+  letter-spacing: 0.05em;
+}
+
+/* ============================================
+   Blog Content Overlay
+   ============================================ */
+#blog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  opacity: 1;
+  transition: opacity 0.4s ease;
+}
+
+#blog-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.blog-panel {
+  position: relative;
+  width: min(700px, 90vw);
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 48px 42px 42px;
+  background: linear-gradient(135deg,
+      rgba(20, 24, 50, 0.92) 0%,
+      rgba(10, 14, 36, 0.95) 100%);
+  border: 1px solid rgba(100, 140, 255, 0.2);
+  border-radius: 20px;
+  box-shadow:
+    0 8px 60px rgba(60, 100, 255, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transform: translateY(0);
+  animation: panelSlideIn 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes panelSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.blog-panel.large-panel {
+  width: min(1200px, 95vw);
+  max-width: none;
+  padding: 48px 24px 24px;
+}
+
+.blog-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.blog-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.blog-panel::-webkit-scrollbar-thumb {
+  background: rgba(100, 140, 255, 0.3);
+  border-radius: 3px;
+}
+
+.blog-close {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: rgba(180, 210, 255, 0.6);
+  font-size: 2rem;
+  cursor: pointer;
+  transition: color 0.2s, transform 0.2s;
+  line-height: 1;
+}
+
+.blog-close:hover {
+  color: #fff;
+  transform: scale(1.15);
+}
+
+.blog-header {
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(100, 140, 255, 0.15);
+}
+
+.blog-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+
+.blog-meta {
+  font-size: 0.85rem;
+  color: rgba(150, 180, 230, 0.6);
+}
+
+.blog-body {
+  font-size: 1.05rem;
+  line-height: 1.85;
+  color: rgba(210, 220, 245, 0.9);
+}
+
+.blog-body h2 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.2rem;
+  color: rgba(140, 190, 255, 0.95);
+  margin: 28px 0 12px;
+  letter-spacing: 0.05em;
+}
+
+.blog-body p {
+  margin-bottom: 16px;
+}
+
+.blog-body code {
+  background: rgba(80, 120, 200, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.92em;
+}
+
+.blog-body blockquote {
+  border-left: 3px solid rgba(100, 160, 255, 0.4);
+  padding-left: 16px;
+  margin: 16px 0;
+  color: rgba(160, 190, 240, 0.8);
+  font-style: italic;
+}
+
+/* ============================================
+   Controls Hint
+   ============================================ */
+#controls-hint {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 24px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+#controls-hint span {
+  font-size: 0.78rem;
+  color: rgba(150, 180, 230, 0.45);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+#controls-hint span:hover {
+  color: rgba(200, 230, 255, 0.9);
+  text-shadow: 0 0 10px rgba(100, 150, 255, 0.6);
+  transform: translateY(-2px) scale(1.05);
+}
+
+/* ============================================
+   Focus indicator dots
+   ============================================ */
+#focus-dots {
+  position: fixed;
+  bottom: 54px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.focus-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(120, 170, 255, 0.25);
+  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  cursor: pointer;
+}
+
+.focus-dot:hover {
+  background: rgba(160, 200, 255, 0.7);
+  box-shadow: 0 0 12px rgba(100, 160, 255, 0.5);
+  transform: scale(1.5);
+}
+
+.focus-dot.active {
+  background: rgba(120, 180, 255, 0.9);
+  box-shadow: 0 0 10px rgba(100, 160, 255, 0.6);
+  transform: scale(1.3);
+}
+
+.focus-dot.star-dot {
+  width: 10px;
+  height: 10px;
+  background: rgba(255, 220, 120, 0.35);
+  transform: rotate(45deg);
+  border-radius: 2px;
+}
+
+.focus-dot.star-dot.active {
+  background: rgba(255, 220, 120, 0.95);
+  box-shadow: 0 0 14px rgba(255, 200, 80, 0.7);
+  transform: rotate(45deg) scale(1.3);
+}
+
+/* ============================================
+   Star Homepage Overlay
+   ============================================ */
+#star-home {
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.1em;
+  padding: 0 2vw;
+  pointer-events: none;
+  opacity: 0;
+  font-size: calc(16px * var(--hero-scale));
+  transition: opacity 0.8s ease;
+  --hero-scale: 1;
+}
+
+#star-home.visible {
+  opacity: 1;
+}
+
+.star-home-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 0;
+  width: min(92vw, 56em);
+}
+
+.star-home-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.32em;
+  font-weight: 400;
+  color: rgba(255, 200, 100, 0.55);
+  letter-spacing: 0.40em;
+  margin-bottom: 1.18em;
+  text-transform: uppercase;
+}
+
+.star-home-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 5.8em;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 0.24em;
+  text-shadow:
+    0 0 30px rgba(255, 180, 80, 0.5),
+    0 0 80px rgba(255, 140, 50, 0.25),
+    0 0 120px rgba(255, 100, 30, 0.15);
+  margin-bottom: 0.34em;
+  line-height: 0.98;
+}
+
+.star-home-line {
+  width: min(46vw, 20em);
+  height: 1px;
+  margin: 0 auto 1.35em;
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255, 180, 80, 0.6) 30%,
+      rgba(255, 220, 130, 0.9) 50%,
+      rgba(255, 180, 80, 0.6) 70%,
+      transparent 100%);
+}
+
+.star-home-tagline {
+  font-size: 1.45em;
+  font-weight: 300;
+  color: rgba(200, 210, 240, 0.7);
+  letter-spacing: 0.18em;
+  margin-bottom: 1.48em;
+}
+
+.star-home-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9em;
+  flex-wrap: wrap;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.star-home-stat {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.98em;
+  font-weight: 400;
+  color: rgba(180, 200, 240, 0.45);
+  letter-spacing: 0.18em;
+  line-height: 1.35;
+}
+
+.star-home-stat-sep {
+  color: rgba(180, 200, 240, 0.25);
+}
+
+.star-home-hint {
+  position: static;
+  margin-top: 3.8em;
+  font-size: 1.25em;
+  color: rgba(255, 200, 120, 0.35);
+  letter-spacing: 0.18em;
+  animation: hintPulse 3s ease-in-out infinite;
+  text-align: center;
+  max-width: 34em;
+  padding: 0 1.5em;
+}
+
+.star-home-stats,
+.star-home-hint {
+  max-width: min(92vw, 34em);
+}
+
+.star-home.compact .star-home-content {
+  width: min(94vw, 44em);
+}
+
+.star-home.compact .star-home-label {
+  font-size: 0.82em;
+}
+
+.star-home.compact .star-home-title {
+  font-size: 4.6em;
+}
+
+.star-home.compact .star-home-tagline {
+  font-size: 1.18em;
+}
+
+.star-home.compact .star-home-stat {
+  font-size: 0.84em;
+}
+
+.star-home.compact .star-home-hint {
+  font-size: 0.82em;
+  padding: 0 1.25em;
+}
+
+.star-home.tight .star-home-content {
+  width: min(96vw, 34em);
+}
+
+.star-home.tight .star-home-title {
+  font-size: 3.6em;
+  line-height: 1.02;
+}
+
+.star-home.tight .star-home-tagline {
+  font-size: 1.02em;
+}
+
+.star-home.tight .star-home-stats {
+  flex-direction: column;
+  gap: 0.35em;
+}
+
+.star-home.tight .star-home-stat-sep {
+  display: none;
+}
+
+.star-home.tight .star-home-hint {
+  font-size: 0.76em;
+  max-width: 26em;
+}
+
+@media (max-width: 900px) {
+  .star-home-title {
+    letter-spacing: 0.12em;
+  }
+}
+
+@keyframes hintPulse {
+
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+
+  50% {
+    opacity: 0.65;
+  }
+}
+
+.star-home-deco-top {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  height: 1px;
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 180, 80, 0.15),
+      transparent);
+  animation: decoScan 4s ease-in-out infinite;
+}
+
+@keyframes decoScan {
+
+  0%,
+  100% {
+    width: 200px;
+    opacity: 0.3;
+  }
+
+  50% {
+    width: 400px;
+    opacity: 0.7;
+  }
+}
+
+/* ============================================
+   Back Button (secondary view)
+   ============================================ */
+.back-btn {
+  position: fixed;
+  top: 28px;
+  left: 28px;
+  z-index: 20;
+  padding: 10px 22px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: rgba(180, 210, 255, 0.7);
+  background: rgba(20, 25, 50, 0.6);
+  border: 1px solid rgba(100, 140, 255, 0.2);
+  border-radius: 10px;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-20px);
+  transition: all 0.4s ease;
+}
+
+.back-btn.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+
+.back-btn:hover {
+  color: #fff;
+  border-color: rgba(100, 160, 255, 0.5);
+  background: rgba(30, 40, 80, 0.75);
+}
+
+/* ============================================
+   Secondary View Dots
+   ============================================ */
+.focus-dots-row {
+  position: fixed;
+  bottom: 54px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.focus-dot.planet-parent-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(120, 180, 255, 0.3);
+}
+
+.focus-dot.planet-parent-dot.active {
+  box-shadow: 0 0 12px rgba(100, 160, 255, 0.7);
+  transform: scale(1.35);
+}
+
+.blog-body img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1.5em auto;
+  border-radius: 8px;
+}

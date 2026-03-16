@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Galaxy Blog — 星系博客</title>
+  <meta name="description" content="一个以三维星系为界面的互动博客，每篇文章都是一颗可探索的行星。" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+
+<body>
+  <canvas id="galaxy-canvas"></canvas>
+
+  <!-- Star homepage overlay (visible when star is focused) -->
+  <div id="star-home" class="visible">
+    <div class="star-home-deco-top"></div>
+    <div class="star-home-content">
+      <div class="star-home-label">✦ GALAXY BLOG ✦</div>
+      <h1 class="star-home-title">星 系 博 客</h1>
+      <div class="star-home-line"></div>
+      <p class="star-home-tagline">探索无垠的思想宇宙</p>
+      <div class="star-home-stats">
+        <span class="star-home-stat" id="stat-planets">⬡ 6 颗行星</span>
+        <span class="star-home-stat-sep">·</span>
+        <span class="star-home-stat" id="stat-contents">∞ 无限想象</span>
+      </div>
+    </div>
+    <div class="star-home-hint" id="star-hint">← 点击恒星查看更多 →</div>
+  </div>
+
+  <!-- Planet name HUD -->
+  <div id="planet-hud">
+    <div class="planet-name"></div>
+    <div class="planet-subtitle"></div>
+  </div>
+
+  <!-- Blog content overlay -->
+  <div id="blog-overlay" class="hidden">
+    <div class="blog-panel">
+      <button class="blog-close" id="blog-close">&times;</button>
+      <div class="blog-header">
+        <h1 class="blog-title"></h1>
+        <div class="blog-meta"></div>
+      </div>
+      <div class="blog-body"></div>
+    </div>
+  </div>
+
+  <!-- Back button (secondary view) -->
+  <button id="back-btn" class="back-btn">⬅ 返回星系</button>
+
+  <!-- Controls hint -->
+  <div id="controls-hint">
+    <span>🖱️ 滚轮/方向键 切换星球</span>
+    <span>🖱️ 移动鼠标 环绕视角</span>
+    <span>🖱️ 左键点击 阅读内容</span>
+    <span>🖱️ 按住右键 俯瞰全景</span>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
