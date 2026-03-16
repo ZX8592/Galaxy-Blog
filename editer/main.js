@@ -1,9 +1,10 @@
-const { createApp, ref, computed, reactive, onMounted, onBeforeUnmount } = window.Vue;
+const { createApp, ref, computed, reactive, nextTick, onMounted, onBeforeUnmount } = window.Vue;
 
 const LOCAL_API_PATH = '/api/blogData';
 const REPO_STORAGE_KEY = 'galaxy-editor-repo-config';
 const TOKEN_STORAGE_KEY = 'galaxy-editor-token';
 const SIDEBAR_EXPANDED_KEY = 'galaxy-editor-sidebar-expanded';
+const THEME_STORAGE_KEY = 'editor-theme';
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -419,6 +420,7 @@ const RichEditor = {
     const content = this.modelValue || '';
     this.quill.clipboard.dangerouslyPasteHTML(content);
     this.sourceContent = content;
+    this.resetViewport();
 
     this.quill.on('text-change', () => {
       this.sourceContent = this.quill.root.innerHTML;
@@ -426,6 +428,21 @@ const RichEditor = {
     });
   },
   methods: {
+    resetViewport() {
+      requestAnimationFrame(() => {
+        if (!this.quill) {
+          return;
+        }
+
+        const scrollingContainer = this.quill.scrollingContainer || this.quill.root.parentElement;
+        if (scrollingContainer) {
+          scrollingContainer.scrollTop = 0;
+        }
+        this.quill.root.scrollTop = 0;
+        this.quill.setSelection(0, 0, 'silent');
+        this.quill.blur();
+      });
+    },
     updateSource() {
       if (!this.quill) {
         return;
@@ -445,11 +462,8 @@ const RichEditor = {
 
       const normalizedValue = nextValue || '';
       if (normalizedValue !== this.quill.root.innerHTML) {
-        const selection = this.quill.getSelection();
         this.quill.clipboard.dangerouslyPasteHTML(normalizedValue);
-        if (selection) {
-          this.quill.setSelection(selection.index);
-        }
+        this.resetViewport();
       }
 
       if (normalizedValue !== this.sourceContent) {
@@ -463,17 +477,19 @@ createApp({
     RichEditor
   },
   setup() {
+    const systemThemeMedia = window.matchMedia('(prefers-color-scheme: dark)');
     const starData = ref(createDefaultStarData());
     const planets = ref([]);
     const activeIndex = ref(-1);
     const saveStatus = ref(null);
     const isBusy = ref(false);
     const repoConfig = reactive(loadStoredRepoConfig());
-    const currentTheme = ref(localStorage.getItem('editor-theme') || 'light');
+    const currentTheme = ref(localStorage.getItem(THEME_STORAGE_KEY) || 'system');
     const isCompactScreen = ref(window.innerWidth <= 980);
     const desktopSidebarExpanded = ref(readBooleanPreference(SIDEBAR_EXPANDED_KEY, false));
     const mobileSidebarOpen = ref(false);
     const activeSidebarPanel = ref(null);
+    const workspaceRoot = ref(null);
     let statusTimer = null;
 
     function setStatus(type, msg, timeout = 4200) {
@@ -490,17 +506,40 @@ createApp({
       }
     }
 
+    function resolveTheme(theme) {
+      return theme === 'system'
+        ? (systemThemeMedia.matches ? 'dark' : 'light')
+        : theme;
+    }
+
     function applyTheme(theme) {
-      document.documentElement.setAttribute('data-theme', theme);
+      const resolvedTheme = resolveTheme(theme);
+      document.documentElement.setAttribute('data-theme', resolvedTheme);
+      document.documentElement.style.colorScheme = resolvedTheme;
     }
 
     function setTheme(theme) {
       currentTheme.value = theme;
-      localStorage.setItem('editor-theme', theme);
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
       applyTheme(theme);
     }
 
     applyTheme(currentTheme.value);
+
+    function handleSystemThemeChange() {
+      if (currentTheme.value === 'system') {
+        applyTheme('system');
+      }
+    }
+
+    function scrollWorkspaceToTop() {
+      nextTick(() => {
+        if (workspaceRoot.value) {
+          workspaceRoot.value.scrollTop = 0;
+        }
+        window.scrollTo(0, 0);
+      });
+    }
 
     function syncViewportState() {
       const compact = window.innerWidth <= 980;
@@ -514,10 +553,20 @@ createApp({
 
     onMounted(() => {
       window.addEventListener('resize', syncViewportState);
+      if (typeof systemThemeMedia.addEventListener === 'function') {
+        systemThemeMedia.addEventListener('change', handleSystemThemeChange);
+      } else if (typeof systemThemeMedia.addListener === 'function') {
+        systemThemeMedia.addListener(handleSystemThemeChange);
+      }
     });
 
     onBeforeUnmount(() => {
       window.removeEventListener('resize', syncViewportState);
+      if (typeof systemThemeMedia.removeEventListener === 'function') {
+        systemThemeMedia.removeEventListener('change', handleSystemThemeChange);
+      } else if (typeof systemThemeMedia.removeListener === 'function') {
+        systemThemeMedia.removeListener(handleSystemThemeChange);
+      }
     });
 
     const activePlanet = computed(() => (activeIndex.value >= 0 ? planets.value[activeIndex.value] : null));
@@ -617,6 +666,7 @@ createApp({
       if (isCompactScreen.value) {
         mobileSidebarOpen.value = false;
       }
+      scrollWorkspaceToTop();
     }
 
     function selectPlanet(index) {
@@ -625,6 +675,7 @@ createApp({
       if (isCompactScreen.value) {
         mobileSidebarOpen.value = false;
       }
+      scrollWorkspaceToTop();
     }
 
     async function loadData() {
@@ -644,6 +695,7 @@ createApp({
         }
 
         applyLoadedData(loaded);
+        scrollWorkspaceToTop();
       } catch (error) {
         setStatus('error', error.message || '读取失败', 5600);
       } finally {
@@ -674,6 +726,8 @@ createApp({
       if (isCompactScreen.value) {
         mobileSidebarOpen.value = false;
       }
+
+      scrollWorkspaceToTop();
     }
 
     function deletePlanet(index) {
@@ -736,6 +790,7 @@ createApp({
       isCompactScreen,
       isSidebarExpanded,
       activeSidebarPanel,
+      workspaceRoot,
       currentSourceLabel,
       uploadButtonLabel,
       sidebarToggleLabel,

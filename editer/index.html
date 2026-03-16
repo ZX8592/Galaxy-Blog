@@ -25,6 +25,9 @@
       --danger: #cb4040;
       --shadow: 0 18px 60px rgba(103, 123, 170, 0.14);
       --glass: blur(18px);
+      --scrollbar-track: rgba(122, 146, 181, 0.08);
+      --scrollbar-thumb: rgba(122, 146, 181, 0.32);
+      --scrollbar-thumb-hover: rgba(98, 122, 161, 0.48);
     }
 
     :root[data-theme="dark"] {
@@ -45,6 +48,9 @@
       --danger: #ff7878;
       --shadow: 0 20px 70px rgba(0, 0, 0, 0.34);
       --glass: blur(18px);
+      --scrollbar-track: rgba(124, 145, 184, 0.08);
+      --scrollbar-thumb: rgba(124, 145, 184, 0.34);
+      --scrollbar-thumb-hover: rgba(149, 169, 209, 0.5);
     }
 
     * {
@@ -65,6 +71,69 @@
 
     body {
       overflow: hidden;
+    }
+
+    body,
+    .workspace,
+    .sidebar-scroll,
+    .sidebar-panel,
+    .source-editor,
+    .ql-editor {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    }
+
+    body::-webkit-scrollbar,
+    .workspace::-webkit-scrollbar,
+    .sidebar-scroll::-webkit-scrollbar,
+    .sidebar-panel::-webkit-scrollbar,
+    .source-editor::-webkit-scrollbar,
+    .ql-editor::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    body::-webkit-scrollbar-track,
+    .workspace::-webkit-scrollbar-track,
+    .sidebar-scroll::-webkit-scrollbar-track,
+    .sidebar-panel::-webkit-scrollbar-track,
+    .source-editor::-webkit-scrollbar-track,
+    .ql-editor::-webkit-scrollbar-track {
+      background: var(--scrollbar-track);
+      border-radius: 999px;
+    }
+
+    body::-webkit-scrollbar-thumb,
+    .workspace::-webkit-scrollbar-thumb,
+    .sidebar-scroll::-webkit-scrollbar-thumb,
+    .sidebar-panel::-webkit-scrollbar-thumb,
+    .source-editor::-webkit-scrollbar-thumb,
+    .ql-editor::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border-radius: 999px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+
+    body::-webkit-scrollbar-thumb:hover,
+    .workspace::-webkit-scrollbar-thumb:hover,
+    .sidebar-scroll::-webkit-scrollbar-thumb:hover,
+    .sidebar-panel::-webkit-scrollbar-thumb:hover,
+    .source-editor::-webkit-scrollbar-thumb:hover,
+    .ql-editor::-webkit-scrollbar-thumb:hover {
+      background: var(--scrollbar-thumb-hover);
+      background-clip: padding-box;
+    }
+
+    body::-webkit-scrollbar-button,
+    .workspace::-webkit-scrollbar-button,
+    .sidebar-scroll::-webkit-scrollbar-button,
+    .sidebar-panel::-webkit-scrollbar-button,
+    .source-editor::-webkit-scrollbar-button,
+    .ql-editor::-webkit-scrollbar-button {
+      display: none;
+      width: 0;
+      height: 0;
     }
 
     button,
@@ -247,16 +316,6 @@
       line-height: 1;
     }
 
-    .layout:not(.expanded) .quick-create {
-      width: 52px;
-      padding: 0;
-      justify-content: center;
-      align-self: center;
-      box-shadow: none;
-      background: transparent;
-      border-color: transparent;
-    }
-
     .layout:not(.expanded) .with-label,
     .layout:not(.expanded) .sidebar-brand,
     .layout:not(.expanded) .sidebar-scroll,
@@ -332,6 +391,7 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
+      min-height: 0;
     }
 
     .sidebar-panel {
@@ -344,6 +404,9 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
+      max-height: min(54vh, 430px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
     }
 
     .panel-title {
@@ -408,6 +471,7 @@
       display: flex;
       gap: 10px;
       justify-content: space-between;
+      flex-shrink: 0;
     }
 
     .dock-btn {
@@ -445,6 +509,18 @@
       box-shadow: none;
       background: transparent;
       border-color: transparent;
+    }
+
+    .sidebar-panel .panel-row:last-child {
+      position: sticky;
+      bottom: 0;
+      margin-top: auto;
+      padding-top: 12px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0), var(--panel) 35%);
+    }
+
+    :root[data-theme="dark"] .sidebar-panel .panel-row:last-child {
+      background: linear-gradient(180deg, rgba(18, 26, 48, 0), var(--panel) 35%);
     }
 
     .upload-btn {
@@ -779,7 +855,7 @@
             <span>{{ currentSelectionLabel }}</span>
           </div>
 
-          <button class="quick-create" @click="addPlanet">
+          <button v-if="isSidebarExpanded" class="quick-create" @click="addPlanet">
             <span class="icon">＋</span>
             <span class="with-label">新增行星</span>
           </button>
@@ -860,6 +936,7 @@
             <div class="panel-row">
               <button class="ghost-btn" :class="{ active: currentTheme === 'light' }" @click="setTheme('light')">浅色</button>
               <button class="ghost-btn" :class="{ active: currentTheme === 'dark' }" @click="setTheme('dark')">深色</button>
+              <button class="ghost-btn" :class="{ active: currentTheme === 'system' }" @click="setTheme('system')">系统</button>
             </div>
           </div>
 
@@ -876,7 +953,7 @@
         </div>
       </aside>
 
-      <main class="workspace">
+      <main ref="workspaceRoot" class="workspace">
         <div class="workspace-inner" v-if="starData">
           <template v-if="activeIndex === -1">
             <section class="surface">
