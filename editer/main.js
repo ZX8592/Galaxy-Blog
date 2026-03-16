@@ -1,10 +1,9 @@
-const { createApp, ref, computed, reactive } = window.Vue;
+const { createApp, ref, computed, reactive, onMounted, onBeforeUnmount } = window.Vue;
 
 const LOCAL_API_PATH = '/api/blogData';
 const REPO_STORAGE_KEY = 'galaxy-editor-repo-config';
 const TOKEN_STORAGE_KEY = 'galaxy-editor-token';
-const SIDEBAR_COLLAPSED_KEY = 'galaxy-editor-sidebar-collapsed';
-const REPOBAR_COLLAPSED_KEY = 'galaxy-editor-repobar-collapsed';
+const SIDEBAR_EXPANDED_KEY = 'galaxy-editor-sidebar-expanded';
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -15,7 +14,6 @@ function readBooleanPreference(key, fallbackValue) {
   if (storedValue === null) {
     return fallbackValue;
   }
-
   return storedValue === '1';
 }
 
@@ -166,7 +164,6 @@ function sanitizeBeforeSave(starData, blogPosts) {
 function isLocalDev() {
   return ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
 }
-
 function inferRepoConfig() {
   const inferred = {
     owner: '',
@@ -373,17 +370,16 @@ async function saveToGitHub(config, payload) {
     })
   });
 }
-
 const RichEditor = {
   props: ['modelValue'],
   emits: ['update:modelValue'],
   template: `
     <div>
-      <div class="stack-actions" style="justify-content: flex-end; margin-bottom: 8px;">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
         <button
           type="button"
-          class="btn secondary"
-          style="padding: 8px 12px;"
+          class="ghost-btn"
+          style="min-height:40px;padding:0 12px;"
           @click="isSourceMode = !isSourceMode"
         >
           {{ isSourceMode ? '返回富文本' : '切换到 HTML 源码' }}
@@ -462,7 +458,6 @@ const RichEditor = {
     }
   }
 };
-
 createApp({
   components: {
     RichEditor
@@ -474,10 +469,11 @@ createApp({
     const saveStatus = ref(null);
     const isBusy = ref(false);
     const repoConfig = reactive(loadStoredRepoConfig());
-    const currentTheme = ref('dark');
-    const compactLayoutDefault = window.innerWidth <= 980;
-    const isSidebarCollapsed = ref(readBooleanPreference(SIDEBAR_COLLAPSED_KEY, compactLayoutDefault));
-    const isRepoBarCollapsed = ref(readBooleanPreference(REPOBAR_COLLAPSED_KEY, compactLayoutDefault));
+    const currentTheme = ref(localStorage.getItem('editor-theme') || 'light');
+    const isCompactScreen = ref(window.innerWidth <= 980);
+    const desktopSidebarExpanded = ref(readBooleanPreference(SIDEBAR_EXPANDED_KEY, false));
+    const mobileSidebarOpen = ref(false);
+    const activeSidebarPanel = ref(null);
     let statusTimer = null;
 
     function setStatus(type, msg, timeout = 4200) {
@@ -498,21 +494,34 @@ createApp({
       document.documentElement.setAttribute('data-theme', theme);
     }
 
-    const storedTheme = localStorage.getItem('editor-theme');
-    if (storedTheme) {
-      currentTheme.value = storedTheme;
-    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-      currentTheme.value = 'light';
+    function setTheme(theme) {
+      currentTheme.value = theme;
+      localStorage.setItem('editor-theme', theme);
+      applyTheme(theme);
     }
+
     applyTheme(currentTheme.value);
 
-    function toggleTheme() {
-      currentTheme.value = currentTheme.value === 'dark' ? 'light' : 'dark';
-      localStorage.setItem('editor-theme', currentTheme.value);
-      applyTheme(currentTheme.value);
+    function syncViewportState() {
+      const compact = window.innerWidth <= 980;
+      if (compact !== isCompactScreen.value) {
+        isCompactScreen.value = compact;
+        if (!compact) {
+          mobileSidebarOpen.value = false;
+        }
+      }
     }
 
+    onMounted(() => {
+      window.addEventListener('resize', syncViewportState);
+    });
+
+    onBeforeUnmount(() => {
+      window.removeEventListener('resize', syncViewportState);
+    });
+
     const activePlanet = computed(() => (activeIndex.value >= 0 ? planets.value[activeIndex.value] : null));
+    const isSidebarExpanded = computed(() => (isCompactScreen.value ? mobileSidebarOpen.value : desktopSidebarExpanded.value));
     const hasRepoLocation = computed(() => Boolean(repoConfig.owner && repoConfig.repo && repoConfig.branch && repoConfig.filePath));
     const hasGitHubToken = computed(() => Boolean(repoConfig.token));
     const canLoadFromGitHub = computed(() => hasRepoLocation.value);
@@ -533,34 +542,67 @@ createApp({
       return '尚未配置';
     });
 
-    const saveButtonLabel = computed(() => {
-      if (canSaveToGitHub.value) {
-        return '保存到 GitHub';
+    const uploadButtonLabel = computed(() => {
+      if (isBusy.value) {
+        return '上传中';
       }
-      if (isLocalDev()) {
-        return '保存到本地';
-      }
-      return '填写 Token 后保存';
+      return canSaveToGitHub.value ? '上传' : (isLocalDev() ? '保存' : '上传');
     });
 
-    const sidebarToggleLabel = computed(() => (isSidebarCollapsed.value ? '展开导航' : '收起导航'));
-    const repoBarToggleLabel = computed(() => (isRepoBarCollapsed.value ? '展开仓库配置' : '收起仓库配置'));
+    const sidebarToggleLabel = computed(() => (isSidebarExpanded.value ? '收起侧栏' : '展开侧栏'));
+    const currentSelectionLabel = computed(() => {
+      if (activeIndex.value === -1) {
+        return '正在编辑恒星首页';
+      }
+      return planets.value[activeIndex.value]?.name || '正在编辑行星';
+    });
+
+    function setDesktopSidebarExpanded(value) {
+      desktopSidebarExpanded.value = value;
+      writeBooleanPreference(SIDEBAR_EXPANDED_KEY, value);
+    }
 
     function toggleSidebar() {
-      isSidebarCollapsed.value = !isSidebarCollapsed.value;
-      writeBooleanPreference(SIDEBAR_COLLAPSED_KEY, isSidebarCollapsed.value);
-    }
-
-    function toggleRepoBar() {
-      isRepoBarCollapsed.value = !isRepoBarCollapsed.value;
-      writeBooleanPreference(REPOBAR_COLLAPSED_KEY, isRepoBarCollapsed.value);
-    }
-
-    function collapseSidebarOnCompactLayout() {
-      if (window.innerWidth <= 980 && !isSidebarCollapsed.value) {
-        isSidebarCollapsed.value = true;
-        writeBooleanPreference(SIDEBAR_COLLAPSED_KEY, true);
+      if (isCompactScreen.value) {
+        mobileSidebarOpen.value = !mobileSidebarOpen.value;
+        if (!mobileSidebarOpen.value) {
+          activeSidebarPanel.value = null;
+        }
+        return;
       }
+
+      const nextValue = !desktopSidebarExpanded.value;
+      setDesktopSidebarExpanded(nextValue);
+      if (!nextValue) {
+        activeSidebarPanel.value = null;
+      }
+    }
+
+    function closeSidebar() {
+      if (isCompactScreen.value) {
+        mobileSidebarOpen.value = false;
+      } else {
+        setDesktopSidebarExpanded(false);
+      }
+      activeSidebarPanel.value = null;
+    }
+
+    function ensureSidebarVisible() {
+      if (isCompactScreen.value) {
+        mobileSidebarOpen.value = true;
+      } else {
+        setDesktopSidebarExpanded(true);
+      }
+    }
+
+    function openSidebarPanel(panel) {
+      if (activeSidebarPanel.value === panel && isSidebarExpanded.value) {
+        activeSidebarPanel.value = null;
+        return;
+      }
+
+      ensureSidebarVisible();
+      activeSidebarPanel.value = panel;
     }
 
     function applyLoadedData(data) {
@@ -571,12 +613,18 @@ createApp({
 
     function selectStarHome() {
       activeIndex.value = -1;
-      collapseSidebarOnCompactLayout();
+      activeSidebarPanel.value = null;
+      if (isCompactScreen.value) {
+        mobileSidebarOpen.value = false;
+      }
     }
 
     function selectPlanet(index) {
       activeIndex.value = index;
-      collapseSidebarOnCompactLayout();
+      activeSidebarPanel.value = null;
+      if (isCompactScreen.value) {
+        mobileSidebarOpen.value = false;
+      }
     }
 
     async function loadData() {
@@ -621,9 +669,10 @@ createApp({
     function addPlanet() {
       planets.value.push(newPlanetTemplate());
       activeIndex.value = planets.value.length - 1;
-      if (window.innerWidth <= 980) {
-        isSidebarCollapsed.value = true;
-        writeBooleanPreference(SIDEBAR_COLLAPSED_KEY, true);
+      activeSidebarPanel.value = null;
+
+      if (isCompactScreen.value) {
+        mobileSidebarOpen.value = false;
       }
     }
 
@@ -647,6 +696,7 @@ createApp({
       if (!Array.isArray(activePlanet.value.moons)) {
         activePlanet.value.moons = [];
       }
+
       activePlanet.value.moons.push(newMoonTemplate());
     }
 
@@ -682,17 +732,20 @@ createApp({
       saveStatus,
       isBusy,
       repoConfig,
+      currentTheme,
+      isCompactScreen,
+      isSidebarExpanded,
+      activeSidebarPanel,
       currentSourceLabel,
-      saveButtonLabel,
+      uploadButtonLabel,
       sidebarToggleLabel,
-      repoBarToggleLabel,
+      currentSelectionLabel,
       canLoad,
       canSave,
-      isSidebarCollapsed,
-      isRepoBarCollapsed,
-      toggleTheme,
+      setTheme,
       toggleSidebar,
-      toggleRepoBar,
+      closeSidebar,
+      openSidebarPanel,
       saveRepoSettings,
       loadData,
       addPlanet,
