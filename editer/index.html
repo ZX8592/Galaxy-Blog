@@ -25,9 +25,9 @@
       --danger: #cb4040;
       --shadow: 0 18px 60px rgba(103, 123, 170, 0.14);
       --glass: blur(18px);
-      --scrollbar-track: rgba(122, 146, 181, 0.08);
-      --scrollbar-thumb: rgba(122, 146, 181, 0.32);
-      --scrollbar-thumb-hover: rgba(98, 122, 161, 0.48);
+      --scrollbar-track: transparent;
+      --scrollbar-thumb: rgba(122, 146, 181, 0.18);
+      --scrollbar-thumb-hover: rgba(98, 122, 161, 0.32);
     }
 
     :root[data-theme="dark"] {
@@ -48,9 +48,9 @@
       --danger: #ff7878;
       --shadow: 0 20px 70px rgba(0, 0, 0, 0.34);
       --glass: blur(18px);
-      --scrollbar-track: rgba(124, 145, 184, 0.08);
-      --scrollbar-thumb: rgba(124, 145, 184, 0.34);
-      --scrollbar-thumb-hover: rgba(149, 169, 209, 0.5);
+      --scrollbar-track: transparent;
+      --scrollbar-thumb: rgba(124, 145, 184, 0.2);
+      --scrollbar-thumb-hover: rgba(149, 169, 209, 0.36);
     }
 
     * {
@@ -80,7 +80,7 @@
     .source-editor,
     .ql-editor {
       scrollbar-width: thin;
-      scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+      scrollbar-color: transparent transparent;
     }
 
     body::-webkit-scrollbar,
@@ -89,8 +89,8 @@
     .sidebar-panel::-webkit-scrollbar,
     .source-editor::-webkit-scrollbar,
     .ql-editor::-webkit-scrollbar {
-      width: 10px;
-      height: 10px;
+      width: 7px;
+      height: 7px;
     }
 
     body::-webkit-scrollbar-track,
@@ -109,18 +109,37 @@
     .sidebar-panel::-webkit-scrollbar-thumb,
     .source-editor::-webkit-scrollbar-thumb,
     .ql-editor::-webkit-scrollbar-thumb {
-      background: var(--scrollbar-thumb);
+      background: transparent;
       border-radius: 999px;
-      border: 2px solid transparent;
+      border: 1px solid transparent;
       background-clip: padding-box;
     }
 
-    body::-webkit-scrollbar-thumb:hover,
-    .workspace::-webkit-scrollbar-thumb:hover,
-    .sidebar-scroll::-webkit-scrollbar-thumb:hover,
-    .sidebar-panel::-webkit-scrollbar-thumb:hover,
-    .source-editor::-webkit-scrollbar-thumb:hover,
-    .ql-editor::-webkit-scrollbar-thumb:hover {
+    body:hover,
+    .workspace:hover,
+    .sidebar-scroll:hover,
+    .sidebar-panel:hover,
+    .source-editor:hover,
+    .ql-editor:hover {
+      scrollbar-color: var(--scrollbar-thumb) transparent;
+    }
+
+    body:hover::-webkit-scrollbar-thumb,
+    .workspace:hover::-webkit-scrollbar-thumb,
+    .sidebar-scroll:hover::-webkit-scrollbar-thumb,
+    .sidebar-panel:hover::-webkit-scrollbar-thumb,
+    .source-editor:hover::-webkit-scrollbar-thumb,
+    .ql-editor:hover::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      background-clip: padding-box;
+    }
+
+    body:hover::-webkit-scrollbar-thumb:hover,
+    .workspace:hover::-webkit-scrollbar-thumb:hover,
+    .sidebar-scroll:hover::-webkit-scrollbar-thumb:hover,
+    .sidebar-panel:hover::-webkit-scrollbar-thumb:hover,
+    .source-editor:hover::-webkit-scrollbar-thumb:hover,
+    .ql-editor:hover::-webkit-scrollbar-thumb:hover {
       background: var(--scrollbar-thumb-hover);
       background-clip: padding-box;
     }
@@ -467,6 +486,10 @@
       flex-wrap: wrap;
     }
 
+    .panel-row > .ghost-btn {
+      min-width: 0;
+    }
+
     .dock {
       display: flex;
       gap: 10px;
@@ -511,40 +534,50 @@
       border-color: transparent;
     }
 
-    .sidebar-panel .panel-row:last-child {
+    .action-row {
       position: sticky;
       bottom: 0;
-      margin-top: auto;
-      padding-top: 12px;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0), var(--panel) 35%);
+      margin: 4px -16px -16px;
+      padding: 14px 16px 16px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      border-top: 1px solid var(--border);
+      border-radius: 0 0 22px 22px;
+      background: var(--panel);
+      backdrop-filter: var(--glass);
     }
 
-    :root[data-theme="dark"] .sidebar-panel .panel-row:last-child {
-      background: linear-gradient(180deg, rgba(18, 26, 48, 0), var(--panel) 35%);
+    .action-row .ghost-btn {
+      width: 100%;
+      justify-content: center;
     }
 
     .upload-btn {
       position: fixed;
       z-index: 40;
-      top: 20px;
-      right: 24px;
-      min-width: 104px;
+      top: 18px;
+      right: 20px;
+      width: 48px;
+      min-width: 48px;
       height: 48px;
-      border-radius: 999px;
-      padding: 0 18px;
-      background: var(--accent);
-      color: #fff;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      box-shadow: 0 16px 40px rgba(61, 109, 242, 0.25);
+      border-radius: 16px;
+      padding: 0;
+      background: transparent;
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+      box-shadow: none;
     }
 
     .upload-btn:hover {
-      background: #2f5de0;
+      background: var(--accent-soft);
     }
 
     .upload-btn:disabled {
-      opacity: 0.6;
+      opacity: 0.45;
       cursor: not-allowed;
       transform: none;
     }
@@ -823,10 +856,11 @@
       }
 
       .upload-btn {
-        top: 16px;
-        right: 16px;
-        min-width: 88px;
-        height: 44px;
+        top: 18px;
+        right: 20px;
+        min-width: 48px;
+        height: 48px;
+        width: 48px;
       }
 
       .toast {
@@ -843,7 +877,7 @@
     <div class="layout" :class="{ expanded: isSidebarExpanded }">
       <button class="icon-btn sidebar-toggle" @click="toggleSidebar" :aria-label="sidebarToggleLabel">{{ isSidebarExpanded ? '☰' : '☰' }}</button>
 
-      <button class="upload-btn" @click="saveData" :disabled="isBusy || !canSave">{{ uploadButtonLabel }}</button>
+      <button class="upload-btn" @click="saveData" :disabled="isBusy || !canSave" :aria-label="uploadButtonLabel" :title="uploadButtonLabel">{{ isBusy ? '⋯' : '⤴' }}</button>
       <div v-if="saveStatus" :class="['toast', saveStatus.type]">{{ saveStatus.msg }}</div>
 
       <div v-if="isCompactScreen && isSidebarExpanded" class="sidebar-backdrop" @click="closeSidebar"></div>
@@ -921,7 +955,7 @@
               当前目标：{{ currentSourceLabel }}
             </div>
 
-            <div class="panel-row">
+            <div class="panel-row action-row">
               <button class="ghost-btn" @click="saveRepoSettings">保存连接</button>
               <button class="ghost-btn" @click="loadData" :disabled="isBusy || !canLoad">重新读取</button>
             </div>
