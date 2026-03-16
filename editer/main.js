@@ -3,9 +3,24 @@ const { createApp, ref, computed, reactive } = window.Vue;
 const LOCAL_API_PATH = '/api/blogData';
 const REPO_STORAGE_KEY = 'galaxy-editor-repo-config';
 const TOKEN_STORAGE_KEY = 'galaxy-editor-token';
+const SIDEBAR_COLLAPSED_KEY = 'galaxy-editor-sidebar-collapsed';
+const REPOBAR_COLLAPSED_KEY = 'galaxy-editor-repobar-collapsed';
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function readBooleanPreference(key, fallbackValue) {
+  const storedValue = localStorage.getItem(key);
+  if (storedValue === null) {
+    return fallbackValue;
+  }
+
+  return storedValue === '1';
+}
+
+function writeBooleanPreference(key, value) {
+  localStorage.setItem(key, value ? '1' : '0');
 }
 
 function createDefaultStarData() {
@@ -460,6 +475,9 @@ createApp({
     const isBusy = ref(false);
     const repoConfig = reactive(loadStoredRepoConfig());
     const currentTheme = ref('dark');
+    const compactLayoutDefault = window.innerWidth <= 980;
+    const isSidebarCollapsed = ref(readBooleanPreference(SIDEBAR_COLLAPSED_KEY, compactLayoutDefault));
+    const isRepoBarCollapsed = ref(readBooleanPreference(REPOBAR_COLLAPSED_KEY, compactLayoutDefault));
     let statusTimer = null;
 
     function setStatus(type, msg, timeout = 4200) {
@@ -525,10 +543,40 @@ createApp({
       return '填写 Token 后保存';
     });
 
+    const sidebarToggleLabel = computed(() => (isSidebarCollapsed.value ? '展开导航' : '收起导航'));
+    const repoBarToggleLabel = computed(() => (isRepoBarCollapsed.value ? '展开仓库配置' : '收起仓库配置'));
+
+    function toggleSidebar() {
+      isSidebarCollapsed.value = !isSidebarCollapsed.value;
+      writeBooleanPreference(SIDEBAR_COLLAPSED_KEY, isSidebarCollapsed.value);
+    }
+
+    function toggleRepoBar() {
+      isRepoBarCollapsed.value = !isRepoBarCollapsed.value;
+      writeBooleanPreference(REPOBAR_COLLAPSED_KEY, isRepoBarCollapsed.value);
+    }
+
+    function collapseSidebarOnCompactLayout() {
+      if (window.innerWidth <= 980 && !isSidebarCollapsed.value) {
+        isSidebarCollapsed.value = true;
+        writeBooleanPreference(SIDEBAR_COLLAPSED_KEY, true);
+      }
+    }
+
     function applyLoadedData(data) {
       starData.value = data.starData;
       planets.value = data.blogPosts;
       activeIndex.value = -1;
+    }
+
+    function selectStarHome() {
+      activeIndex.value = -1;
+      collapseSidebarOnCompactLayout();
+    }
+
+    function selectPlanet(index) {
+      activeIndex.value = index;
+      collapseSidebarOnCompactLayout();
     }
 
     async function loadData() {
@@ -573,6 +621,10 @@ createApp({
     function addPlanet() {
       planets.value.push(newPlanetTemplate());
       activeIndex.value = planets.value.length - 1;
+      if (window.innerWidth <= 980) {
+        isSidebarCollapsed.value = true;
+        writeBooleanPreference(SIDEBAR_COLLAPSED_KEY, true);
+      }
     }
 
     function deletePlanet(index) {
@@ -632,14 +684,22 @@ createApp({
       repoConfig,
       currentSourceLabel,
       saveButtonLabel,
+      sidebarToggleLabel,
+      repoBarToggleLabel,
       canLoad,
       canSave,
+      isSidebarCollapsed,
+      isRepoBarCollapsed,
       toggleTheme,
+      toggleSidebar,
+      toggleRepoBar,
       saveRepoSettings,
       loadData,
       addPlanet,
       deletePlanet,
       addMoon,
+      selectStarHome,
+      selectPlanet,
       saveData
     };
   }

@@ -105,6 +105,39 @@
       gap: 14px;
     }
 
+    .repo-bar-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .repo-bar-heading {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .repo-bar-heading strong {
+      font-size: 1rem;
+    }
+
+    .repo-bar-heading span {
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .repo-bar-content {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .repo-bar.collapsed .repo-bar-content {
+      display: none;
+    }
+
     .repo-grid {
       display: grid;
       gap: 14px;
@@ -136,11 +169,32 @@
       grid-template-columns: 300px minmax(0, 1fr);
     }
 
+    .shell.sidebar-collapsed {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .shell.sidebar-collapsed .sidebar {
+      display: none;
+    }
+
     .sidebar {
       padding: 18px;
       border-right: 1px solid var(--border);
       background: color-mix(in srgb, var(--panel) 90%, transparent);
       overflow-y: auto;
+    }
+
+    .sidebar-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .sidebar-head .sidebar-label {
+      margin: 0;
     }
 
     .sidebar-section {
@@ -475,6 +529,7 @@
       .sidebar {
         border-right: none;
         border-bottom: 1px solid var(--border);
+        max-height: 42vh;
       }
 
       .field-grid,
@@ -485,6 +540,45 @@
 
       .repo-token {
         grid-column: span 1;
+      }
+
+      .topbar,
+      .repo-bar,
+      .editor {
+        padding: 16px;
+      }
+
+      .topbar-title p {
+        display: none;
+      }
+
+      .topbar-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .topbar-actions .btn,
+      .repo-actions .btn {
+        flex: 1 1 150px;
+        justify-content: center;
+      }
+
+      .repo-meta {
+        align-items: stretch;
+      }
+
+      .repo-actions {
+        width: 100%;
+      }
+
+      .panel {
+        padding: 18px;
+        border-radius: 18px;
+      }
+
+      .empty-state {
+        min-height: 220px;
+        padding: 20px;
       }
     }
   </style>
@@ -498,60 +592,77 @@
       </div>
       <div class="topbar-actions">
         <span v-if="saveStatus" :class="['status-pill', saveStatus.type]">{{ saveStatus.msg }}</span>
+        <button class="btn secondary" @click="toggleSidebar">{{ sidebarToggleLabel }}</button>
+        <button class="btn secondary" @click="toggleRepoBar">{{ repoBarToggleLabel }}</button>
         <button class="btn secondary" @click="toggleTheme">切换主题</button>
         <button class="btn" @click="addPlanet">新增行星</button>
         <button class="btn success" @click="saveData" :disabled="isBusy || !canSave">{{ saveButtonLabel }}</button>
       </div>
     </header>
 
-    <section class="repo-bar">
-      <div class="repo-grid">
-        <div class="field">
-          <label>GitHub 用户名</label>
-          <input type="text" v-model.trim="repoConfig.owner" placeholder="your-name">
+    <section class="repo-bar" :class="{ collapsed: isRepoBarCollapsed }">
+      <div class="repo-bar-head">
+        <div class="repo-bar-heading">
+          <strong>仓库连接</strong>
+          <span>用于 GitHub Pages 上直接读写仓库内容</span>
         </div>
-        <div class="field">
-          <label>仓库名</label>
-          <input type="text" v-model.trim="repoConfig.repo" placeholder="galaxy-blog">
-        </div>
-        <div class="field">
-          <label>分支</label>
-          <input type="text" v-model.trim="repoConfig.branch" placeholder="main">
-        </div>
-        <div class="field">
-          <label>数据文件路径</label>
-          <input type="text" v-model.trim="repoConfig.filePath" placeholder="src/blogData.js">
-        </div>
-        <div class="field repo-token">
-          <label>GitHub Token</label>
-          <input type="password" v-model.trim="repoConfig.token" placeholder="github_pat_xxx / ghp_xxx">
-        </div>
-      </div>
-
-      <div class="repo-meta">
         <div class="inline-actions">
-          <label class="toggle">
-            <input type="checkbox" v-model="repoConfig.persistToken">
-            <span>记住当前设备上的 Token</span>
-          </label>
           <span class="source-pill">当前保存目标：{{ currentSourceLabel }}</span>
-        </div>
-        <div class="repo-actions">
-          <button class="btn secondary" @click="saveRepoSettings">保存连接配置</button>
-          <button class="btn secondary" @click="loadData" :disabled="isBusy || !canLoad">从源读取</button>
+          <button class="btn secondary" @click="toggleRepoBar">{{ repoBarToggleLabel }}</button>
         </div>
       </div>
 
-      <p class="repo-hint">
-        GitHub Pages 环境下请填写仓库信息和 Token。点击“保存到 GitHub”后，编辑器会直接更新仓库中的 <code>src/blogData.js</code>，随后由 GitHub Actions 自动重新部署站点。
-      </p>
+      <div class="repo-bar-content">
+        <div class="repo-grid">
+          <div class="field">
+            <label>GitHub 用户名</label>
+            <input type="text" v-model.trim="repoConfig.owner" placeholder="your-name">
+          </div>
+          <div class="field">
+            <label>仓库名</label>
+            <input type="text" v-model.trim="repoConfig.repo" placeholder="galaxy-blog">
+          </div>
+          <div class="field">
+            <label>分支</label>
+            <input type="text" v-model.trim="repoConfig.branch" placeholder="main">
+          </div>
+          <div class="field">
+            <label>数据文件路径</label>
+            <input type="text" v-model.trim="repoConfig.filePath" placeholder="src/blogData.js">
+          </div>
+          <div class="field repo-token">
+            <label>GitHub Token</label>
+            <input type="password" v-model.trim="repoConfig.token" placeholder="github_pat_xxx / ghp_xxx">
+          </div>
+        </div>
+
+        <div class="repo-meta">
+          <div class="inline-actions">
+            <label class="toggle">
+              <input type="checkbox" v-model="repoConfig.persistToken">
+              <span>记住当前设备上的 Token</span>
+            </label>
+          </div>
+          <div class="repo-actions">
+            <button class="btn secondary" @click="saveRepoSettings">保存连接配置</button>
+            <button class="btn secondary" @click="loadData" :disabled="isBusy || !canLoad">从源读取</button>
+          </div>
+        </div>
+
+        <p class="repo-hint">
+          GitHub Pages 环境下请填写仓库信息和 Token。点击“保存到 GitHub”后，编辑器会直接更新仓库中的 <code>src/blogData.js</code>，随后由 GitHub Actions 自动重新部署站点。
+        </p>
+      </div>
     </section>
 
-    <div class="shell">
+    <div class="shell" :class="{ 'sidebar-collapsed': isSidebarCollapsed }">
       <aside class="sidebar">
         <div class="sidebar-section">
-          <p class="sidebar-label">导航</p>
-          <div class="item-card" :class="{ active: activeIndex === -1 }" @click="activeIndex = -1">
+          <div class="sidebar-head">
+            <p class="sidebar-label">导航</p>
+            <button class="btn secondary" @click="toggleSidebar">收起</button>
+          </div>
+          <div class="item-card" :class="{ active: activeIndex === -1 }" @click="selectStarHome">
             <h3>恒星首页</h3>
             <p>编辑站点标题、文案、首页正文和恒星颜色。</p>
           </div>
@@ -561,7 +672,7 @@
             :key="index"
             class="item-card"
             :class="{ active: activeIndex === index }"
-            @click="activeIndex = index"
+            @click="selectPlanet(index)"
           >
             <h3>{{ planet.name || '未命名行星' }}</h3>
             <p>{{ planet.date || '未设置日期' }} · {{ planet.moons?.length || 0 }} 个卫星</p>
