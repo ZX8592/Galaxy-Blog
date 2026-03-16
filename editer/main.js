@@ -481,6 +481,7 @@ createApp({
     const starData = ref(createDefaultStarData());
     const planets = ref([]);
     const activeIndex = ref(-1);
+    const activeMoonIndex = ref(-1);
     const saveStatus = ref(null);
     const isBusy = ref(false);
     const repoConfig = reactive(loadStoredRepoConfig());
@@ -570,6 +571,13 @@ createApp({
     });
 
     const activePlanet = computed(() => (activeIndex.value >= 0 ? planets.value[activeIndex.value] : null));
+    const activeMoon = computed(() => {
+      if (activeIndex.value < 0 || activeMoonIndex.value < 0) {
+        return null;
+      }
+
+      return activePlanet.value?.moons?.[activeMoonIndex.value] || null;
+    });
     const isSidebarExpanded = computed(() => (isCompactScreen.value ? mobileSidebarOpen.value : desktopSidebarExpanded.value));
     const hasRepoLocation = computed(() => Boolean(repoConfig.owner && repoConfig.repo && repoConfig.branch && repoConfig.filePath));
     const hasGitHubToken = computed(() => Boolean(repoConfig.token));
@@ -600,6 +608,9 @@ createApp({
 
     const sidebarToggleLabel = computed(() => (isSidebarExpanded.value ? '收起侧栏' : '展开侧栏'));
     const currentSelectionLabel = computed(() => {
+      if (activeMoon.value) {
+        return `正在编辑卫星 · ${activeMoon.value.name || '未命名卫星'}`;
+      }
       if (activeIndex.value === -1) {
         return '正在编辑恒星首页';
       }
@@ -658,10 +669,12 @@ createApp({
       starData.value = data.starData;
       planets.value = data.blogPosts;
       activeIndex.value = -1;
+      activeMoonIndex.value = -1;
     }
 
     function selectStarHome() {
       activeIndex.value = -1;
+      activeMoonIndex.value = -1;
       activeSidebarPanel.value = null;
       if (isCompactScreen.value) {
         mobileSidebarOpen.value = false;
@@ -671,6 +684,14 @@ createApp({
 
     function selectPlanet(index) {
       activeIndex.value = index;
+      activeMoonIndex.value = -1;
+      activeSidebarPanel.value = null;
+      scrollWorkspaceToTop();
+    }
+
+    function selectMoon(planetIndex, moonIndex) {
+      activeIndex.value = planetIndex;
+      activeMoonIndex.value = moonIndex;
       activeSidebarPanel.value = null;
       if (isCompactScreen.value) {
         mobileSidebarOpen.value = false;
@@ -721,6 +742,7 @@ createApp({
     function addPlanet() {
       planets.value.push(newPlanetTemplate());
       activeIndex.value = planets.value.length - 1;
+      activeMoonIndex.value = -1;
       activeSidebarPanel.value = null;
 
       if (isCompactScreen.value) {
@@ -736,22 +758,68 @@ createApp({
       }
 
       planets.value.splice(index, 1);
-      activeIndex.value = Math.min(activeIndex.value, planets.value.length - 1);
       if (planets.value.length === 0) {
         activeIndex.value = -1;
-      }
-    }
-
-    function addMoon() {
-      if (!activePlanet.value) {
+        activeMoonIndex.value = -1;
         return;
       }
 
-      if (!Array.isArray(activePlanet.value.moons)) {
-        activePlanet.value.moons = [];
+      if (activeIndex.value === index) {
+        activeIndex.value = Math.min(index, planets.value.length - 1);
+        activeMoonIndex.value = -1;
+      } else if (activeIndex.value > index) {
+        activeIndex.value -= 1;
+      }
+    }
+
+    function addMoon(planetIndex = activeIndex.value) {
+      if (planetIndex < 0 || !planets.value[planetIndex]) {
+        return;
       }
 
-      activePlanet.value.moons.push(newMoonTemplate());
+      const targetPlanet = planets.value[planetIndex];
+      if (!Array.isArray(targetPlanet.moons)) {
+        targetPlanet.moons = [];
+      }
+
+      targetPlanet.moons.push(newMoonTemplate());
+      activeIndex.value = planetIndex;
+      activeMoonIndex.value = targetPlanet.moons.length - 1;
+      activeSidebarPanel.value = null;
+
+      if (isCompactScreen.value) {
+        mobileSidebarOpen.value = false;
+      }
+
+      scrollWorkspaceToTop();
+    }
+
+    function deleteMoon(planetIndex, moonIndex) {
+      const targetPlanet = planets.value[planetIndex];
+      if (!targetPlanet?.moons?.[moonIndex]) {
+        return;
+      }
+
+      if (!window.confirm('确认删除这个卫星吗？未保存前刷新页面仍可恢复。')) {
+        return;
+      }
+
+      targetPlanet.moons.splice(moonIndex, 1);
+      if (targetPlanet.moons.length === 0) {
+        targetPlanet.moons = null;
+      }
+
+      if (activeIndex.value !== planetIndex) {
+        return;
+      }
+
+      if (activeMoonIndex.value === moonIndex) {
+        activeMoonIndex.value = -1;
+      } else if (activeMoonIndex.value > moonIndex) {
+        activeMoonIndex.value -= 1;
+      }
+
+      scrollWorkspaceToTop();
     }
 
     async function saveData() {
@@ -782,7 +850,9 @@ createApp({
       starData,
       planets,
       activeIndex,
+      activeMoonIndex,
       activePlanet,
+      activeMoon,
       saveStatus,
       isBusy,
       repoConfig,
@@ -806,8 +876,10 @@ createApp({
       addPlanet,
       deletePlanet,
       addMoon,
+      deleteMoon,
       selectStarHome,
       selectPlanet,
+      selectMoon,
       saveData
     };
   }

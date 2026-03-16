@@ -290,14 +290,15 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
+      padding-right: 6px;
     }
 
     .sidebar-brand {
       display: flex;
       flex-direction: column;
       gap: 4px;
-      padding: 0 10px 0 52px;
-      min-height: 46px;
+      padding: 2px 10px 0 82px;
+      min-height: 52px;
       justify-content: center;
     }
 
@@ -367,6 +368,19 @@
       gap: 8px;
     }
 
+    .nav-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .nav-planet-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 38px;
+      gap: 8px;
+      align-items: stretch;
+    }
+
     .nav-item {
       border: 1px solid transparent;
       border-radius: 18px;
@@ -377,6 +391,10 @@
       display: flex;
       flex-direction: column;
       gap: 4px;
+    }
+
+    .planet-item {
+      min-width: 0;
     }
 
     .nav-item strong {
@@ -403,6 +421,95 @@
     .nav-item.active {
       background: var(--accent-soft);
       border-color: rgba(61, 109, 242, 0.22);
+    }
+
+    .planet-item.expanded:not(.active) {
+      border-color: var(--border);
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .moon-add-btn {
+      width: 38px;
+      height: 100%;
+      min-height: 38px;
+      border-radius: 14px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      opacity: 0.26;
+      transition: opacity 0.18s ease, background 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+    }
+
+    .nav-group:hover .moon-add-btn,
+    .moon-add-btn:focus-visible,
+    .moon-add-btn:hover {
+      opacity: 1;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-color: rgba(61, 109, 242, 0.2);
+    }
+
+    .moon-list {
+      margin-left: 18px;
+      padding-left: 12px;
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .moon-item {
+      border: 1px solid transparent;
+      border-radius: 14px;
+      background: transparent;
+      color: var(--muted);
+      padding: 10px 12px;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+    }
+
+    .moon-item strong {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: inherit;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .moon-item span {
+      font-size: 0.74rem;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .moon-item:hover {
+      border-color: var(--border);
+      background: rgba(255, 255, 255, 0.14);
+      color: var(--text);
+    }
+
+    .moon-item.active {
+      border-color: rgba(61, 109, 242, 0.22);
+      background: var(--accent-soft);
+      color: var(--text);
+    }
+
+    .moon-empty {
+      margin-left: 18px;
+      padding-left: 12px;
+      border-left: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.6;
     }
 
     .sidebar-bottom {
@@ -903,16 +1010,43 @@
               <span>编辑站点标题、首页文案与恒星颜色</span>
             </button>
 
-            <button
-              v-for="(planet, index) in planets"
-              :key="index"
-              class="nav-item"
-              :class="{ active: activeIndex === index }"
-              @click="selectPlanet(index)"
-            >
-              <strong>{{ planet.name || '未命名行星' }}</strong>
-              <span>{{ planet.date || '未设置日期' }} · {{ planet.moons?.length || 0 }} 个卫星</span>
-            </button>
+            <div v-for="(planet, index) in planets" :key="index" class="nav-group">
+              <div class="nav-planet-row">
+                <button
+                  class="nav-item planet-item"
+                  :class="{ active: activeIndex === index && activeMoonIndex === -1, expanded: activeIndex === index }"
+                  @click="selectPlanet(index)"
+                >
+                  <strong>{{ planet.name || '未命名行星' }}</strong>
+                  <span>{{ planet.date || '未设置日期' }} · {{ planet.moons?.length || 0 }} 个卫星</span>
+                </button>
+                <button
+                  class="moon-add-btn"
+                  @click.stop="addMoon(index)"
+                  :aria-label="`为 ${planet.name || '未命名行星'} 新增卫星`"
+                  title="新增卫星"
+                >
+                  ✦
+                </button>
+              </div>
+
+              <div v-if="activeIndex === index && planet.moons?.length" class="moon-list">
+                <button
+                  v-for="(moon, moonIndex) in planet.moons"
+                  :key="`${index}-${moonIndex}`"
+                  class="moon-item"
+                  :class="{ active: activeIndex === index && activeMoonIndex === moonIndex }"
+                  @click="selectMoon(index, moonIndex)"
+                >
+                  <strong>{{ moon.name || `卫星 ${moonIndex + 1}` }}</strong>
+                  <span>卫星</span>
+                </button>
+              </div>
+
+              <div v-else-if="activeIndex === index" class="moon-empty">
+                这颗行星还没有卫星，点击右侧图标新增。
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1072,6 +1206,87 @@
             </section>
           </template>
 
+          <template v-else-if="activeMoon">
+            <section class="surface">
+              <div class="surface-header">
+                <div>
+                  <h2>卫星基础信息</h2>
+                  <p>当前挂载在 {{ activePlanet?.name || '未命名行星' }} 下，可独立维护二级内容。</p>
+                </div>
+                <div class="panel-row">
+                  <button class="ghost-btn" @click="selectPlanet(activeIndex)">返回行星</button>
+                  <button class="ghost-btn danger-btn" @click="deleteMoon(activeIndex, activeMoonIndex)">删除这个卫星</button>
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-field">
+                  <label>卫星名称</label>
+                  <input type="text" v-model="activeMoon.name" placeholder="例如：回声卫星">
+                </div>
+                <div class="form-field">
+                  <label>卫星尺寸</label>
+                  <input type="number" step="0.1" v-model.number="activeMoon.size">
+                </div>
+                <div class="form-field">
+                  <label>内容类型</label>
+                  <select v-model="activeMoon.type">
+                    <option value="html">富文本 HTML</option>
+                    <option value="iframe">嵌入网页 iframe</option>
+                    <option value="link">外部链接</option>
+                  </select>
+                </div>
+                <div class="form-field full" v-if="activeMoon.type === 'iframe' || activeMoon.type === 'link'">
+                  <label>目标 URL</label>
+                  <input type="url" v-model="activeMoon.url" placeholder="https://...">
+                </div>
+              </div>
+            </section>
+
+            <section class="surface">
+              <div class="surface-header">
+                <div>
+                  <h2>卫星视觉</h2>
+                  <p>这里控制卫星球体的基础色、强调色和大气颜色。</p>
+                </div>
+              </div>
+
+              <div class="chip-row">
+                <div class="color-chip">
+                  <input type="color" v-model="activeMoon.colors.base">
+                  <div>
+                    <strong>基础颜色</strong>
+                    <span>{{ activeMoon.colors.base }}</span>
+                  </div>
+                </div>
+                <div class="color-chip">
+                  <input type="color" v-model="activeMoon.colors.accent">
+                  <div>
+                    <strong>强调颜色</strong>
+                    <span>{{ activeMoon.colors.accent }}</span>
+                  </div>
+                </div>
+                <div class="color-chip">
+                  <input type="color" v-model="activeMoon.colors.atmosphere">
+                  <div>
+                    <strong>大气颜色</strong>
+                    <span>{{ activeMoon.colors.atmosphere }}</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="surface" v-if="activeMoon.type === 'html'">
+              <div class="surface-header">
+                <div>
+                  <h2>卫星正文</h2>
+                  <p>点击主站中的卫星后，就会展示这里的独立内容。</p>
+                </div>
+              </div>
+              <rich-editor v-model="activeMoon.content"></rich-editor>
+            </section>
+          </template>
+
           <template v-else-if="activePlanet">
             <section class="surface">
               <div class="surface-header">
@@ -1176,81 +1391,6 @@
                 </div>
               </div>
               <rich-editor v-model="activePlanet.content"></rich-editor>
-            </section>
-
-            <section class="surface">
-              <div class="surface-header">
-                <div>
-                  <h2>卫星内容</h2>
-                  <p>卫星适合承载二级文章、外链或补充页面，让内容层级更丰富。</p>
-                </div>
-                <button class="ghost-btn" @click="addMoon">新增卫星</button>
-              </div>
-
-              <div v-if="activePlanet.moons && activePlanet.moons.length">
-                <div class="sub-surface" v-for="(moon, moonIndex) in activePlanet.moons" :key="moonIndex" style="margin-bottom: 16px;">
-                  <div class="surface-header" style="margin-bottom: 16px;">
-                    <div>
-                      <h3>卫星 {{ moonIndex + 1 }} · {{ moon.name || '未命名卫星' }}</h3>
-                    </div>
-                    <button class="ghost-btn danger-btn" @click="activePlanet.moons.splice(moonIndex, 1)">删除卫星</button>
-                  </div>
-
-                  <div class="form-grid">
-                    <div class="form-field">
-                      <label>名称</label>
-                      <input type="text" v-model="moon.name" placeholder="例如：回声卫星">
-                    </div>
-                    <div class="form-field">
-                      <label>尺寸</label>
-                      <input type="number" step="0.1" v-model.number="moon.size">
-                    </div>
-                    <div class="form-field">
-                      <label>内容类型</label>
-                      <select v-model="moon.type">
-                        <option value="html">富文本 HTML</option>
-                        <option value="iframe">嵌入网页 iframe</option>
-                        <option value="link">外部链接</option>
-                      </select>
-                    </div>
-                    <div class="form-field full" v-if="moon.type === 'iframe' || moon.type === 'link'">
-                      <label>目标 URL</label>
-                      <input type="url" v-model="moon.url" placeholder="https://...">
-                    </div>
-                  </div>
-
-                  <div class="chip-row" style="margin-top: 16px;">
-                    <div class="color-chip">
-                      <input type="color" v-model="moon.colors.base">
-                      <div>
-                        <strong>基础颜色</strong>
-                        <span>{{ moon.colors.base }}</span>
-                      </div>
-                    </div>
-                    <div class="color-chip">
-                      <input type="color" v-model="moon.colors.accent">
-                      <div>
-                        <strong>强调颜色</strong>
-                        <span>{{ moon.colors.accent }}</span>
-                      </div>
-                    </div>
-                    <div class="color-chip">
-                      <input type="color" v-model="moon.colors.atmosphere">
-                      <div>
-                        <strong>大气颜色</strong>
-                        <span>{{ moon.colors.atmosphere }}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style="margin-top: 16px;" v-if="moon.type === 'html'">
-                    <rich-editor v-model="moon.content"></rich-editor>
-                  </div>
-                </div>
-              </div>
-              <div v-else class="empty-state">
-                当前行星还没有卫星内容，可以在这里继续扩展子页面。
-              </div>
             </section>
           </template>
         </div>
