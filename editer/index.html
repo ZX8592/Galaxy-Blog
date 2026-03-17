@@ -856,8 +856,6 @@
 
     .ql-toolbar.ql-snow {
       border-radius: 16px 16px 0 0;
-      min-height: 54px;
-      padding-right: 168px;
     }
 
     .ql-container.ql-snow {
@@ -886,7 +884,7 @@
       border: 1px solid var(--border);
       background: var(--panel-soft);
       color: var(--text);
-      padding: 54px 14px 13px;
+      padding: 13px 14px;
       font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
     }
 
@@ -896,8 +894,8 @@
 
     .editor-mode-toggle {
       position: absolute;
-      top: 10px;
-      right: 12px;
+      top: -72px;
+      right: 0;
       z-index: 4;
     }
 
@@ -985,10 +983,6 @@
         grid-template-columns: 1fr;
       }
 
-      .ql-toolbar.ql-snow {
-        padding-right: 128px;
-      }
-
       .upload-btn {
         top: 18px;
         right: 20px;
@@ -1059,7 +1053,7 @@
                   :aria-label="`为 ${planet.name || '未命名行星'} 新增卫星`"
                   title="新增卫星"
                 >
-                  ✦
+                  ＋
                 </button>
               </div>
 
@@ -1131,7 +1125,7 @@
           <div v-if="isSidebarExpanded && activeSidebarPanel === 'theme'" class="sidebar-panel">
             <div class="panel-title">
               <strong>外观主题</strong>
-              <span>切换编辑器明暗风格，保持和你的工作环境一致。</span>
+              <span>切换编辑器明暗风格，选择喜欢的外观。</span>
             </div>
 
             <div class="panel-row theme-row">
