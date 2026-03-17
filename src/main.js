@@ -168,10 +168,7 @@ function exitSecondaryView() {
     const focusTargetIdx = planetIdx + 1; // offset by 1 for star at index 0
 
     const targetFocusObj = focusTargets[focusTargetIdx];
-    const galaxyPose = cameraCtrl.getFocusPose(focusTargetIdx);
-    if (!galaxyPose) return;
-
-    secondaryView.exit(galaxyPose.cameraPos, galaxyPose.lookAt, () => {
+    secondaryView.exit(() => cameraCtrl.getFocusPose(focusTargetIdx), () => {
         // Exit complete
         mode = 'galaxy';
         cameraCtrl.snapToFocus(focusTargetIdx);

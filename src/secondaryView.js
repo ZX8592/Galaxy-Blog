@@ -86,9 +86,12 @@ export class SecondaryView {
         this.entering = false;
         this.exiting = false;
         this.exitCallback = null;
+        this.exitPoseResolver = null;
 
         // Cooldown for scroll
         this.switchCooldown = 0;
+        this.rowScale = 1;
+        this.rowLift = 0;
 
         this._bindEvents();
     }
@@ -144,6 +147,9 @@ export class SecondaryView {
         // Create container group
         this.rowGroup = new THREE.Group();
         this.rowGroup.position.set(0, ROW_Y, 0);
+        this.rowScale = 0.965;
+        this.rowLift = 0.18;
+        this.rowGroup.scale.setScalar(this.rowScale);
         this.scene.add(this.rowGroup);
 
         this.items = [];
@@ -212,9 +218,20 @@ export class SecondaryView {
     exit(returnCamPos, returnLookAt, onComplete) {
         if (!this.active) return;
         this.exiting = true;
-        this.targetCamPos.copy(returnCamPos);
-        this.targetLookAt.copy(returnLookAt);
-        this.exitCallback = onComplete;
+        if (typeof returnCamPos === 'function') {
+            this.exitPoseResolver = returnCamPos;
+            const pose = this.exitPoseResolver();
+            if (pose) {
+                this.targetCamPos.copy(pose.cameraPos);
+                this.targetLookAt.copy(pose.lookAt);
+            }
+            this.exitCallback = returnLookAt;
+        } else {
+            this.exitPoseResolver = null;
+            this.targetCamPos.copy(returnCamPos);
+            this.targetLookAt.copy(returnLookAt);
+            this.exitCallback = onComplete;
+        }
     }
 
     _cleanup() {
@@ -233,7 +250,10 @@ export class SecondaryView {
         this.active = false;
         this.entering = false;
         this.exiting = false;
+        this.exitPoseResolver = null;
         this.planetIndex = -1;
+        this.rowScale = 1;
+        this.rowLift = 0;
     }
 
     /** Get the currently focused item */
@@ -407,6 +427,14 @@ export class SecondaryView {
 
         this.switchCooldown = Math.max(0, this.switchCooldown - deltaTime);
 
+        if (this.exiting && this.exitPoseResolver) {
+            const pose = this.exitPoseResolver();
+            if (pose) {
+                this.targetCamPos.copy(pose.cameraPos);
+                this.targetLookAt.copy(pose.lookAt);
+            }
+        }
+
         // Self-rotate all items
         this.items.forEach((item) => {
             item.mesh.rotation.y = elapsed * 0.4;
@@ -417,9 +445,19 @@ export class SecondaryView {
         });
 
         // Camera transition
-        const lerpSpeed = this.exiting ? 8.8 : (this.entering ? 5.6 : 6.6);
+        const lerpSpeed = this.exiting ? 11.2 : (this.entering ? 5.8 : 6.8);
         this.currentCamPos.lerp(this.targetCamPos, lerpSpeed * deltaTime);
         this.currentLookAt.lerp(this.targetLookAt, lerpSpeed * deltaTime);
+
+        if (this.rowGroup) {
+            const targetScale = this.exiting ? 0.9 : 1.0;
+            const targetLift = this.exiting ? 0.7 : 0.0;
+            const settleSpeed = this.exiting ? 8.2 : 5.2;
+            this.rowScale = THREE.MathUtils.lerp(this.rowScale, targetScale, settleSpeed * deltaTime);
+            this.rowLift = THREE.MathUtils.lerp(this.rowLift, targetLift, settleSpeed * deltaTime);
+            this.rowGroup.scale.setScalar(this.rowScale);
+            this.rowGroup.position.y = ROW_Y + this.rowLift;
+        }
 
         this.camera.position.copy(this.currentCamPos);
         this.camera.lookAt(this.currentLookAt);
@@ -430,7 +468,7 @@ export class SecondaryView {
         }
 
         // Check if exit transition is done
-        if (this.exiting && this.currentCamPos.distanceTo(this.targetCamPos) < 0.16) {
+        if (this.exiting && this.currentCamPos.distanceTo(this.targetCamPos) < 0.09) {
             const cb = this.exitCallback;
             this._cleanup();
             if (cb) cb();
