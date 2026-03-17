@@ -20,6 +20,47 @@ const ROW_SPACING = 3.5; // space between items
 const CAM_DISTANCE = 8; // camera distance from row
 const MOON_DISTANCE = CAM_DISTANCE * 0.42;
 const PLANET_DISTANCE = CAM_DISTANCE * 0.94;
+const MOON_SHAPES = new Set(['sphere', 'cube', 'capsule', 'prism', 'torus']);
+
+function normalizeMoonShape(shape) {
+    const nextShape = typeof shape === 'string' ? shape.trim().toLowerCase() : '';
+    return MOON_SHAPES.has(nextShape) ? nextShape : 'sphere';
+}
+
+function createBodyGeometry(shape, size) {
+    switch (normalizeMoonShape(shape)) {
+        case 'cube':
+            return new THREE.BoxGeometry(size * 1.7, size * 1.7, size * 1.7, 4, 4, 4);
+        case 'capsule':
+            return new THREE.CapsuleGeometry(size * 0.56, size * 1.0, 10, 24);
+        case 'prism':
+            return new THREE.CylinderGeometry(size * 0.84, size * 0.84, size * 1.85, 6, 3, false);
+        case 'torus':
+            return new THREE.TorusGeometry(size * 0.82, size * 0.28, 18, 48);
+        default:
+            return new THREE.SphereGeometry(size, 40, 40);
+    }
+}
+
+function applyShapePose(group, shape) {
+    switch (normalizeMoonShape(shape)) {
+        case 'cube':
+            group.rotation.set(0.42, 0.52, -0.18);
+            break;
+        case 'capsule':
+            group.rotation.set(0.32, -0.46, 0.22);
+            break;
+        case 'prism':
+            group.rotation.set(0.0, 0.38, Math.PI * 0.5);
+            break;
+        case 'torus':
+            group.rotation.set(Math.PI * 0.36, 0.0, 0.24);
+            break;
+        default:
+            group.rotation.set(0, 0, 0);
+            break;
+    }
+}
 
 export class SecondaryView {
     constructor(scene, camera) {
@@ -108,26 +149,28 @@ export class SecondaryView {
         this.items = [];
 
         // Planet (first item on the left)
-        const planetItem = this._createItemMesh(post.colors, post.size, post.hasRing, post.ringColor);
+        const planetItem = this._createItemMesh(post.colors, post.size, post.hasRing, post.ringColor, 'sphere');
         planetItem.group.position.set(0, 0, 0);
         this.rowGroup.add(planetItem.group);
-        this.items.push({
-            mesh: planetItem.mesh,
-            group: planetItem.group,
+            this.items.push({
+                mesh: planetItem.mesh,
+                group: planetItem.group,
             name: post.name,
             content: post.content,
             date: post.date,
-            subtitle: post.subtitle,
-            type: post.type,
-            url: post.url,
-            isMoon: false,
-            moonIndex: -1
-        });
+                subtitle: post.subtitle,
+                type: post.type,
+                url: post.url,
+                shape: 'sphere',
+                isMoon: false,
+                moonIndex: -1
+            });
 
         // Moons (to the right)
         let xPos = ROW_SPACING;
         moons.forEach((moon, i) => {
-            const moonItem = this._createItemMesh(moon.colors, moon.size, false, null);
+            const resolvedShape = normalizeMoonShape(moon.shape);
+            const moonItem = this._createItemMesh(moon.colors, moon.size, false, null, resolvedShape);
             moonItem.group.position.set(xPos, 0, 0);
             this.rowGroup.add(moonItem.group);
             this.items.push({
@@ -137,6 +180,7 @@ export class SecondaryView {
                 content: moon.content,
                 type: moon.type,
                 url: moon.url,
+                shape: resolvedShape,
                 date: null,
                 subtitle: null,
                 isMoon: true,
@@ -219,11 +263,12 @@ export class SecondaryView {
     }
 
     /** Create a toon-shaded sphere mesh for the row view */
-    _createItemMesh(colors, size, hasRing, ringColor) {
+    _createItemMesh(colors, size, hasRing, ringColor, shape = 'sphere') {
         const group = new THREE.Group();
+        const resolvedShape = normalizeMoonShape(shape);
 
         // Main sphere with simplified toon shading
-        const geo = new THREE.SphereGeometry(size, 40, 40);
+        const geo = createBodyGeometry(resolvedShape, size);
         const mat = new THREE.ShaderMaterial({
             uniforms: {
                 uBaseColor: { value: new THREE.Color(colors.base) },
@@ -302,9 +347,9 @@ export class SecondaryView {
         });
         const mesh = new THREE.Mesh(geo, mat);
         group.add(mesh);
+        applyShapePose(group, resolvedShape);
 
         // Atmosphere
-        const atmosGeo = new THREE.SphereGeometry(size * 1.15, 24, 24);
         const atmosMat = new THREE.ShaderMaterial({
             uniforms: { uColor: { value: new THREE.Color(colors.atmosphere) } },
             vertexShader: `
@@ -327,7 +372,9 @@ export class SecondaryView {
             blending: THREE.AdditiveBlending,
             depthWrite: false
         });
-        group.add(new THREE.Mesh(atmosGeo, atmosMat));
+        const atmosphere = new THREE.Mesh(geo.clone(), atmosMat);
+        atmosphere.scale.setScalar(resolvedShape === 'torus' ? 1.16 : 1.12);
+        group.add(atmosphere);
 
         // Ring
         if (hasRing && ringColor) {

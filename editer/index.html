@@ -475,6 +475,11 @@
     }
 
     .moon-item span {
+      display: none;
+    }
+
+    .moon-item::after {
+      content: attr(data-shape);
       font-size: 0.74rem;
       color: var(--muted);
       flex-shrink: 0;
@@ -1062,6 +1067,7 @@
                   v-for="(moon, moonIndex) in planet.moons"
                   :key="`${index}-${moonIndex}`"
                   class="moon-item"
+                  :data-shape="moonShapeLabel(moon.shape)"
                   :class="{ active: activeIndex === index && activeMoonIndex === moonIndex }"
                   @click="selectMoon(index, moonIndex)"
                 >
@@ -1254,6 +1260,12 @@
                 <div class="form-field">
                   <label>卫星尺寸</label>
                   <input type="number" step="0.1" v-model.number="activeMoon.size">
+                </div>
+                <div class="form-field">
+                  <label>Shape</label>
+                  <select v-model="activeMoon.shape">
+                    <option v-for="option in moonShapeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                  </select>
                 </div>
                 <div class="form-field">
                   <label>内容类型</label>

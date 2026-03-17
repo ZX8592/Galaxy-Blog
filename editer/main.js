@@ -5,6 +5,18 @@ const REPO_STORAGE_KEY = 'galaxy-editor-repo-config';
 const TOKEN_STORAGE_KEY = 'galaxy-editor-token';
 const SIDEBAR_EXPANDED_KEY = 'galaxy-editor-sidebar-expanded';
 const THEME_STORAGE_KEY = 'editor-theme';
+const MOON_SHAPE_OPTIONS = [
+  { value: 'sphere', label: 'Sphere' },
+  { value: 'cube', label: 'Cube' },
+  { value: 'capsule', label: 'Capsule' },
+  { value: 'prism', label: 'Prism' },
+  { value: 'torus', label: 'Torus' }
+];
+
+function normalizeMoonShape(shape) {
+  const nextShape = typeof shape === 'string' ? shape.trim().toLowerCase() : '';
+  return MOON_SHAPE_OPTIONS.some((option) => option.value === nextShape) ? nextShape : 'sphere';
+}
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -67,6 +79,7 @@ function newMoonTemplate() {
   return {
     name: '新卫星',
     size: 0.35,
+    shape: 'sphere',
     colors: {
       base: '#e06c75',
       accent: '#ffb3ba',
@@ -108,6 +121,7 @@ function normalizeLoadedData(data) {
       ? planet.moons.map((moon) => ({
           ...baseMoon,
           ...moon,
+          shape: normalizeMoonShape(moon?.shape),
           type: moon?.type || 'html',
           colors: {
             ...baseMoon.colors,
@@ -145,6 +159,7 @@ function sanitizeBeforeSave(starData, blogPosts) {
     if (Array.isArray(planet.moons)) {
       planet.moons = planet.moons.map((moon) => ({
         ...moon,
+        shape: normalizeMoonShape(moon?.shape),
         type: moon.type || 'html'
       }));
 
@@ -619,6 +634,11 @@ createApp({
       return planets.value[activeIndex.value]?.name || '正在编辑行星';
     });
 
+    function moonShapeLabel(shape) {
+      const matched = MOON_SHAPE_OPTIONS.find((option) => option.value === normalizeMoonShape(shape));
+      return matched?.label || 'Sphere';
+    }
+
     function setDesktopSidebarExpanded(value) {
       desktopSidebarExpanded.value = value;
       writeBooleanPreference(SIDEBAR_EXPANDED_KEY, value);
@@ -892,6 +912,8 @@ createApp({
       uploadButtonLabel,
       sidebarToggleLabel,
       currentSelectionLabel,
+      moonShapeLabel,
+      moonShapeOptions: MOON_SHAPE_OPTIONS,
       canLoad,
       canSave,
       setTheme,
