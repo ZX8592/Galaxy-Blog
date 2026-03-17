@@ -22,13 +22,25 @@ document.title = starData.name || 'Galaxy Blog — 星系博客';
 // ============================================
 
 const canvas = document.getElementById('galaxy-canvas');
+
+function getRenderPixelRatio() {
+    const viewportPixels = window.innerWidth * window.innerHeight;
+    const dpr = window.devicePixelRatio || 1;
+
+    if (viewportPixels > 4000000) return Math.min(dpr, 1.0);
+    if (viewportPixels > 2600000) return Math.min(dpr, 1.15);
+    if (viewportPixels > 1900000) return Math.min(dpr, 1.3);
+    return Math.min(dpr, 1.5);
+}
+
 const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: true,
-    alpha: false
+    alpha: false,
+    powerPreference: 'high-performance'
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(getRenderPixelRatio());
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.88;
 
@@ -60,7 +72,7 @@ const planets = blogPosts.map((post, i) => {
 // ============================================
 
 const starTarget = {
-    getWorldPosition() { return new THREE.Vector3(0, 0, 0); },
+    getWorldPosition(target = new THREE.Vector3()) { return target.set(0, 0, 0); },
     config: { name: starData.title || '星系博客', subtitle: starData.meta || '', size: starData.size || 2.2 },
     index: -1,
     isStar: true
@@ -152,21 +164,18 @@ function enterSecondaryView(planetIdx) {
 }
 
 function exitSecondaryView() {
-    // Get the planet's current world position to return camera to
     const planetIdx = secondaryView.planetIndex;
     const focusTargetIdx = planetIdx + 1; // offset by 1 for star at index 0
 
-    // Compute where the galaxy camera should be
     const targetFocusObj = focusTargets[focusTargetIdx];
-    const targetPos = targetFocusObj.getWorldPosition();
-    const returnCamPos = targetPos.clone().add(new THREE.Vector3(4, 3, 6));
+    const galaxyPose = cameraCtrl.getFocusPose(focusTargetIdx);
+    if (!galaxyPose) return;
 
-    secondaryView.exit(returnCamPos, targetPos, () => {
+    secondaryView.exit(galaxyPose.cameraPos, galaxyPose.lookAt, () => {
         // Exit complete
         mode = 'galaxy';
-        cameraCtrl.focusIndex = focusTargetIdx;
+        cameraCtrl.snapToFocus(focusTargetIdx);
         cameraCtrl.overlayOpen = false;
-        cameraCtrl.currentLookAt.copy(targetPos);
         ui.exitSecondary();
         ui.updateHUD(targetFocusObj);
     });
@@ -211,10 +220,14 @@ ui.close = () => {
 window.addEventListener('resize', () => {
     const w = window.innerWidth;
     const h = window.innerHeight;
+    const pixelRatio = getRenderPixelRatio();
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    renderer.setPixelRatio(pixelRatio);
     renderer.setSize(w, h);
+    composer.setPixelRatio(pixelRatio);
     composer.setSize(w, h);
+    skybox.setPixelRatio(pixelRatio);
 });
 
 // ============================================
@@ -231,6 +244,7 @@ const bloomPass = new UnrealBloomPass(
 const outputPass = new OutputPass();
 
 const composer = new EffectComposer(renderer);
+composer.setPixelRatio(getRenderPixelRatio());
 composer.addPass(renderScene);
 composer.addPass(bloomPass);
 composer.addPass(outputPass);

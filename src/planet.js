@@ -21,7 +21,7 @@ export function createPlanet(config, index) {
   orbit.rotation.y = initialAngle;
 
   // ---- Planet body with toon shading (star-relative lighting) ----
-  const planetGeo = new THREE.SphereGeometry(size, 48, 48);
+  const planetGeo = new THREE.SphereGeometry(size, 40, 40);
 
   const planetMat = new THREE.ShaderMaterial({
     uniforms: {
@@ -121,7 +121,7 @@ export function createPlanet(config, index) {
   group.add(planetMesh);
 
   // ---- Stylized silhouette shell for a more animated look ----
-  const outlineGeo = new THREE.SphereGeometry(size * 1.06, 32, 32);
+  const outlineGeo = new THREE.SphereGeometry(size * 1.06, 24, 24);
   const outlineMat = new THREE.MeshBasicMaterial({
     color: new THREE.Color(colors.atmosphere).lerp(new THREE.Color(0x030816), 0.82),
     side: THREE.BackSide,
@@ -133,7 +133,7 @@ export function createPlanet(config, index) {
   group.add(outline);
 
   // ---- Atmosphere glow (view-dependent edge glow is fine for atmosphere) ----
-  const atmosGeo = new THREE.SphereGeometry(size * 1.18, 32, 32);
+  const atmosGeo = new THREE.SphereGeometry(size * 1.18, 24, 24);
   const atmosMat = new THREE.ShaderMaterial({
     uniforms: {
       uColor: { value: new THREE.Color(colors.atmosphere) }
@@ -163,7 +163,7 @@ export function createPlanet(config, index) {
 
   // ---- Ring (optional) ----
   if (hasRing && ringColor) {
-    const ringGeo = new THREE.RingGeometry(size * 1.5, size * 2.2, 64);
+    const ringGeo = new THREE.RingGeometry(size * 1.5, size * 2.2, 48);
     const ringMat = new THREE.ShaderMaterial({
       uniforms: {
         uColor: { value: new THREE.Color(ringColor) }
@@ -219,10 +219,9 @@ export function createPlanet(config, index) {
     index,
     config,
 
-    getWorldPosition() {
-      const pos = new THREE.Vector3();
-      group.getWorldPosition(pos);
-      return pos;
+    getWorldPosition(target = new THREE.Vector3()) {
+      group.getWorldPosition(target);
+      return target;
     },
 
     update(time) {

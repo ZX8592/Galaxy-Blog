@@ -49,7 +49,7 @@ export function createStar(scene, starData) {
   group.add(flare);
 
   // Core sphere with animated surface
-  const coreGeo = new THREE.SphereGeometry(2.2, 64, 64);
+  const coreGeo = new THREE.SphereGeometry(2.2, 48, 48);
   const coreMat = new THREE.ShaderMaterial({
     uniforms: {
       uTime: { value: 0 },
@@ -127,7 +127,7 @@ export function createStar(scene, starData) {
   group.add(core);
 
   // Inner glow layer
-  const glowGeo = new THREE.SphereGeometry(2.8, 32, 32);
+  const glowGeo = new THREE.SphereGeometry(2.8, 24, 24);
   const glowMat = new THREE.ShaderMaterial({
     uniforms: {
       uTime: { value: 0 },
@@ -168,7 +168,7 @@ export function createStar(scene, starData) {
   group.add(glow);
 
   // Outer corona
-  const coronaGeo = new THREE.SphereGeometry(4.0, 32, 32);
+  const coronaGeo = new THREE.SphereGeometry(4.0, 24, 24);
   const coronaMat = new THREE.ShaderMaterial({
     uniforms: {
       uTime: { value: 0 },

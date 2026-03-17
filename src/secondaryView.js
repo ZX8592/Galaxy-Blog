@@ -18,6 +18,8 @@ import blogPosts from './blogData.js';
 const ROW_Y = 200; // far above galaxy to avoid visual interference
 const ROW_SPACING = 3.5; // space between items
 const CAM_DISTANCE = 8; // camera distance from row
+const MOON_DISTANCE = CAM_DISTANCE * 0.42;
+const PLANET_DISTANCE = CAM_DISTANCE * 0.94;
 
 export class SecondaryView {
     constructor(scene, camera) {
@@ -37,6 +39,7 @@ export class SecondaryView {
         this.targetLookAt = new THREE.Vector3();
         this.currentCamPos = new THREE.Vector3();
         this.currentLookAt = new THREE.Vector3();
+        this._itemWorldPos = new THREE.Vector3();
 
         // Transition state
         this.entering = false;
@@ -198,18 +201,17 @@ export class SecondaryView {
         const item = this.items[this.focusIndex];
         if (!item) return;
 
-        const itemWorldPos = new THREE.Vector3();
-        item.group.getWorldPosition(itemWorldPos);
+        item.group.getWorldPosition(this._itemWorldPos);
 
         // Zoom closer for moons, further for planets
-        const distance = item.isMoon ? CAM_DISTANCE * 0.55 : CAM_DISTANCE;
-        const yOffset = item.isMoon ? 0.1 : 0.3;
+        const distance = item.isMoon ? MOON_DISTANCE : PLANET_DISTANCE;
+        const yOffset = item.isMoon ? 0.04 : 0.26;
 
-        this.targetLookAt.copy(itemWorldPos);
+        this.targetLookAt.copy(this._itemWorldPos);
         this.targetCamPos.set(
-            itemWorldPos.x,
-            itemWorldPos.y + yOffset,
-            itemWorldPos.z + distance
+            this._itemWorldPos.x,
+            this._itemWorldPos.y + yOffset,
+            this._itemWorldPos.z + distance
         );
 
         // Notify HUD
@@ -221,7 +223,7 @@ export class SecondaryView {
         const group = new THREE.Group();
 
         // Main sphere with simplified toon shading
-        const geo = new THREE.SphereGeometry(size, 48, 48);
+        const geo = new THREE.SphereGeometry(size, 40, 40);
         const mat = new THREE.ShaderMaterial({
             uniforms: {
                 uBaseColor: { value: new THREE.Color(colors.base) },
@@ -302,7 +304,7 @@ export class SecondaryView {
         group.add(mesh);
 
         // Atmosphere
-        const atmosGeo = new THREE.SphereGeometry(size * 1.15, 32, 32);
+        const atmosGeo = new THREE.SphereGeometry(size * 1.15, 24, 24);
         const atmosMat = new THREE.ShaderMaterial({
             uniforms: { uColor: { value: new THREE.Color(colors.atmosphere) } },
             vertexShader: `
@@ -329,7 +331,7 @@ export class SecondaryView {
 
         // Ring
         if (hasRing && ringColor) {
-            const ringGeo = new THREE.RingGeometry(size * 1.5, size * 2.2, 64);
+            const ringGeo = new THREE.RingGeometry(size * 1.5, size * 2.2, 48);
             const ringMat = new THREE.ShaderMaterial({
                 uniforms: { uColor: { value: new THREE.Color(ringColor) } },
                 vertexShader: `varying vec2 vUv; void main() { vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
@@ -368,7 +370,7 @@ export class SecondaryView {
         });
 
         // Camera transition
-        const lerpSpeed = (this.entering || this.exiting) ? 2.5 : 5.0;
+        const lerpSpeed = this.exiting ? 8.8 : (this.entering ? 5.6 : 6.6);
         this.currentCamPos.lerp(this.targetCamPos, lerpSpeed * deltaTime);
         this.currentLookAt.lerp(this.targetLookAt, lerpSpeed * deltaTime);
 
@@ -376,12 +378,12 @@ export class SecondaryView {
         this.camera.lookAt(this.currentLookAt);
 
         // Check if enter transition is done
-        if (this.entering && this.currentCamPos.distanceTo(this.targetCamPos) < 0.1) {
+        if (this.entering && this.currentCamPos.distanceTo(this.targetCamPos) < 0.08) {
             this.entering = false;
         }
 
         // Check if exit transition is done
-        if (this.exiting && this.currentCamPos.distanceTo(this.targetCamPos) < 0.3) {
+        if (this.exiting && this.currentCamPos.distanceTo(this.targetCamPos) < 0.16) {
             const cb = this.exitCallback;
             this._cleanup();
             if (cb) cb();

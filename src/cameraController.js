@@ -22,6 +22,11 @@ export class CameraController {
 
         // Smooth interpolation
         this.currentLookAt = new THREE.Vector3();
+        this._targetPos = new THREE.Vector3();
+        this._lookAtTarget = new THREE.Vector3();
+        this._offset = new THREE.Vector3();
+        this._desiredCamPos = new THREE.Vector3();
+        this._origin = new THREE.Vector3(0, 0, 0);
 
         // Mouse state
         this.mouseX = window.innerWidth / 2;
@@ -108,6 +113,52 @@ export class CameraController {
         return this.targets[this.focusIndex];
     }
 
+    getFocusPose(index = this.focusIndex) {
+        const target = this.targets[index];
+        if (!target) return null;
+
+        const targetPos = target.getWorldPosition(this._targetPos);
+        const targetZoom = index === 0 && !this.overlayOpen ? 1.0 : 0.0;
+        const targetSize = target.config.size || 2.2;
+        const normalRadius = this.baseRadius + targetSize * 1.5;
+        const currentRadius = THREE.MathUtils.lerp(normalRadius, this.panoramaRadius, targetZoom);
+
+        const sinPhi = Math.sin(this.spherical.phi);
+        const cosPhi = Math.cos(this.spherical.phi);
+        const sinTheta = Math.sin(this.spherical.theta);
+        const cosTheta = Math.cos(this.spherical.theta);
+
+        this._offset.set(
+            currentRadius * sinPhi * cosTheta,
+            currentRadius * cosPhi,
+            currentRadius * sinPhi * sinTheta
+        );
+
+        this._lookAtTarget.lerpVectors(
+            targetPos,
+            this._origin,
+            targetZoom * 0.85
+        );
+        this._desiredCamPos.copy(this._lookAtTarget).add(this._offset);
+
+        return {
+            cameraPos: this._desiredCamPos.clone(),
+            lookAt: this._lookAtTarget.clone()
+        };
+    }
+
+    snapToFocus(index = this.focusIndex) {
+        const pose = this.getFocusPose(index);
+        if (!pose) return;
+
+        this.focusIndex = index;
+        this.switching = false;
+        this.switchCooldown = 0;
+        this.currentLookAt.copy(pose.lookAt);
+        this.camera.position.copy(pose.cameraPos);
+        this.camera.lookAt(pose.lookAt);
+    }
+
     isStarFocused() {
         return this.focusIndex === 0;
     }
@@ -137,7 +188,7 @@ export class CameraController {
         const target = this.targets[this.focusIndex];
         if (!target) return;
 
-        const targetPos = target.getWorldPosition();
+        const targetPos = target.getWorldPosition(this._targetPos);
 
         // Smooth look-at interpolation
         const lerpSpeed = this.switching ? 2.5 : 6.0;
@@ -172,22 +223,22 @@ export class CameraController {
         const sinTheta = Math.sin(this.spherical.theta);
         const cosTheta = Math.cos(this.spherical.theta);
 
-        const offset = new THREE.Vector3(
+        this._offset.set(
             currentRadius * sinPhi * cosTheta,
             currentRadius * cosPhi,
             currentRadius * sinPhi * sinTheta
         );
 
         // When zooming out, blend look-at toward origin
-        const lookAtTarget = new THREE.Vector3().lerpVectors(
+        this._lookAtTarget.lerpVectors(
             this.currentLookAt,
-            new THREE.Vector3(0, 0, 0),
+            this._origin,
             this.zoomFactor * 0.85
         );
 
-        const desiredCamPos = lookAtTarget.clone().add(offset);
+        this._desiredCamPos.copy(this._lookAtTarget).add(this._offset);
 
-        this.camera.position.lerp(desiredCamPos, 5.0 * deltaTime);
-        this.camera.lookAt(lookAtTarget);
+        this.camera.position.lerp(this._desiredCamPos, 5.8 * deltaTime);
+        this.camera.lookAt(this._lookAtTarget);
     }
 }

@@ -6,9 +6,10 @@ import * as THREE from 'three';
 export function createSkybox(scene) {
     const skyGroup = new THREE.Group();
     skyGroup.name = 'skybox';
+    const initialPixelRatio = Math.min(window.devicePixelRatio || 1, 1.4);
 
     // 1. Particle Stars
-    const count = 3000;
+    const count = 2200;
     const positions = new Float32Array(count * 3);
     const sizes = new Float32Array(count);
     const twinklePhases = new Float32Array(count);
@@ -35,7 +36,7 @@ export function createSkybox(scene) {
     const material = new THREE.ShaderMaterial({
         uniforms: {
             uTime: { value: 0 },
-            uPixelRatio: { value: window.devicePixelRatio }
+            uPixelRatio: { value: initialPixelRatio }
         },
         vertexShader: `
       attribute float aSize;
@@ -69,7 +70,7 @@ export function createSkybox(scene) {
     skyGroup.add(points);
 
     // 2. Procedural Nebula Sphere
-    const nebulaGeo = new THREE.SphereGeometry(450, 64, 64);
+    const nebulaGeo = new THREE.SphereGeometry(450, 40, 40);
     const nebulaMat = new THREE.ShaderMaterial({
         uniforms: {
             uTime: { value: 0 },
@@ -253,6 +254,9 @@ export function createSkybox(scene) {
     scene.add(skyGroup);
 
     return {
+        setPixelRatio(pixelRatio) {
+            material.uniforms.uPixelRatio.value = pixelRatio;
+        },
         update(time, delta = 0.016) {
             material.uniforms.uTime.value = time;
             nebulaMat.uniforms.uTime.value = time;
