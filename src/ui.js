@@ -221,6 +221,12 @@ export class UI {
     }
 
     _renderContent(item) {
+        if (item.type === 'link' && item.url) {
+            window.open(item.url, '_blank', 'noopener,noreferrer');
+            this.close();
+            return;
+        }
+
         this.titleEl.textContent = item.name;
         this.metaEl.textContent = item.subtitle || '';
 
@@ -229,9 +235,6 @@ export class UI {
         if (item.type === 'iframe' && item.url) {
             this.bodyEl.innerHTML = `<iframe src="${item.url}" style="width: 100%; height: 65vh; border: none; border-radius: 8px;"></iframe>`;
             panel.classList.add('large-panel');
-        } else if (item.type === 'link' && item.url) {
-            this.bodyEl.innerHTML = `<h2><a href="${item.url}" target="_blank" style="color: #6ec6ff;">点击此处在新标签页打开链接</a></h2><p>${item.content || ''}</p>`;
-            panel.classList.remove('large-panel');
         } else {
             this.bodyEl.innerHTML = item.content;
             panel.classList.remove('large-panel');
@@ -243,6 +246,10 @@ export class UI {
 
     close() {
         this.overlay.classList.add('hidden');
+        this.overlay.querySelector('.blog-panel')?.classList.remove('large-panel');
+        this.titleEl.textContent = '';
+        this.metaEl.textContent = '';
+        this.bodyEl.innerHTML = '';
         this.isOpen = false;
     }
 }

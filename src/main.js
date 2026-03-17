@@ -105,22 +105,25 @@ function handleInteraction() {
         } else {
             // Planet: check if it has moons
             const post = blogPosts[target.index];
-            if (post.moons && post.moons.length > 0) {
+            if (post.type === 'link' && post.url) {
+                ui.open(target.index);
+            } else if (post.moons && post.moons.length > 0) {
                 // Enter secondary view
                 enterSecondaryView(target.index);
-                playClickSound();
             } else {
                 // No moons: open content directly
                 ui.open(target.index);
-                cameraCtrl.overlayOpen = true;
-                playClickSound();
             }
+
+            cameraCtrl.overlayOpen = ui.isOpen;
+            playClickSound();
         }
     } else if (mode === 'secondary') {
         // In secondary view: open focused item's content
         const item = secondaryView.getFocusedItem();
         if (item) {
             ui.openSecondaryContent(item);
+            cameraCtrl.overlayOpen = ui.isOpen;
         }
     }
 }

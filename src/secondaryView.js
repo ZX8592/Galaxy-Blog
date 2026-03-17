@@ -53,8 +53,8 @@ export class SecondaryView {
         window.addEventListener('wheel', (e) => {
             if (!this.active || this.entering || this.exiting) return;
             if (this.switchCooldown > 0) return;
-            if (e.deltaY > 0) this._switchFocus(1);
-            else if (e.deltaY < 0) this._switchFocus(-1);
+            if (e.deltaY < 0) this._switchFocus(1);
+            else if (e.deltaY > 0) this._switchFocus(-1);
         }, { passive: true });
 
         window.addEventListener('keydown', (e) => {

@@ -83,6 +83,7 @@ body:active {
 
 #blog-overlay.hidden {
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
 }
 

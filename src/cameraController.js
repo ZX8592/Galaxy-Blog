@@ -66,8 +66,8 @@ export class CameraController {
         window.addEventListener('wheel', (e) => {
             if (this.overlayOpen) return;
             if (this.switchCooldown > 0) return;
-            if (e.deltaY > 0) this.switchFocus(1);
-            else if (e.deltaY < 0) this.switchFocus(-1);
+            if (e.deltaY < 0) this.switchFocus(1);
+            else if (e.deltaY > 0) this.switchFocus(-1);
         }, { passive: true });
 
         // Arrow keys
